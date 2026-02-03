@@ -1,0 +1,15 @@
+from .defaults import (
+    BENCHMARKS_DIR,
+    CORPUS_DIR,
+    DATA_ROOT,
+    LEGALBENCH_CONTRACTNLI_PATH,
+    PROJECT_ROOT,
+)
+
+__all__ = [
+    "BENCHMARKS_DIR",
+    "CORPUS_DIR",
+    "DATA_ROOT",
+    "LEGALBENCH_CONTRACTNLI_PATH",
+    "PROJECT_ROOT",
+]
