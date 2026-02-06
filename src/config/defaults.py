@@ -21,6 +21,9 @@ CONTRACTNLI_META_PATH = INDEX_DIR / "contractnli_meta.jsonl"
 # Retrieval defaults
 RETRIEVAL_TOP_K = 5
 
+# Agentic loop defaults
+AGENTIC_MAX_ITERS = 3
+
 # LLM defaults (llama.cpp)
 LLAMA_GGUF_PATH = Path("/Users/fadimardelli/models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
 LLAMA_N_CTX = 4096
