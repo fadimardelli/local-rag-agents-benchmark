@@ -39,9 +39,10 @@ class Retriever:
             if idx < 0:
                 continue
             meta = self.metadata[idx]
+            doc_path = meta.get("doc_path") or meta.get("file_name") or str(meta.get("doc_id"))
             results.append(
                 RetrievedChunk(
-                    doc_path=meta["doc_path"],
+                    doc_path=doc_path,
                     start=meta["start"],
                     end=meta["end"],
                     text=meta["text"],
