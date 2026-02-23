@@ -2,7 +2,16 @@ import argparse
 from pathlib import Path
 
 from src.rag import AgenticRAG
-from src.config.defaults import LLAMA_GGUF_PATH_3B, LLAMA_GGUF_PATH_8B
+from src.rag.llama_cpp import LlamaCppModel
+from src.utils.memory import PeakMemory
+from src.utils.timers import Timer
+from src.config.defaults import (
+    LLAMA_GGUF_PATH_3B,
+    LLAMA_GGUF_PATH_8B,
+    LLAMA_MAX_TOKENS,
+    LLAMA_N_CTX,
+    LLAMA_TEMPERATURE,
+)
 
 
 def main() -> None:
@@ -10,6 +19,8 @@ def main() -> None:
     parser.add_argument("question", help="Question to ask the agentic RAG system")
     parser.add_argument("--model", choices=["8b", "3b"], default="8b")
     parser.add_argument("--model-path", type=str, default="")
+    parser.add_argument("--temperature", type=float, default=LLAMA_TEMPERATURE)
+    parser.add_argument("--max-tokens", type=int, default=LLAMA_MAX_TOKENS)
     args = parser.parse_args()
 
     if args.model_path:
@@ -17,11 +28,21 @@ def main() -> None:
     else:
         model_path = LLAMA_GGUF_PATH_3B if args.model == "3b" else LLAMA_GGUF_PATH_8B
 
-    rag = AgenticRAG(model_path=model_path)
-    result = rag.run(args.question)
+    model = LlamaCppModel(
+        model_path=model_path,
+        n_ctx=LLAMA_N_CTX,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+    )
+    rag = AgenticRAG(model=model)
+    with PeakMemory() as mem, Timer() as timer:
+        result = rag.run(args.question)
 
     print("\nAnswer:\n")
     print(result.answer)
+    print(f"\nLatency (s): {timer.elapsed:.2f}")
+    print(f"Peak RSS (MB): {mem.peak_rss_bytes / (1024 * 1024):.1f}")
+    print(f"Avg CPU (%): {mem.avg_cpu_percent:.1f}")
     print(f"\nIterations: {result.iterations}")
     if result.refined_queries:
         print("\nRefined queries:")

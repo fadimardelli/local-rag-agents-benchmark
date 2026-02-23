@@ -9,6 +9,7 @@ import psutil
 @dataclass
 class MemorySample:
     peak_rss_bytes: int
+    avg_cpu_percent: float
 
 
 class PeakMemory:
@@ -17,6 +18,8 @@ class PeakMemory:
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._peak = 0
+        self._cpu_total = 0.0
+        self._cpu_samples = 0
         self._proc = psutil.Process()
 
     def _run(self) -> None:
@@ -24,6 +27,8 @@ class PeakMemory:
             rss = self._proc.memory_info().rss
             if rss > self._peak:
                 self._peak = rss
+            self._cpu_total += self._proc.cpu_percent(interval=None)
+            self._cpu_samples += 1
             time.sleep(self.interval_s)
 
     def __enter__(self) -> "PeakMemory":
@@ -41,3 +46,8 @@ class PeakMemory:
     def peak_rss_bytes(self) -> int:
         return self._peak
 
+    @property
+    def avg_cpu_percent(self) -> float:
+        if self._cpu_samples == 0:
+            return 0.0
+        return self._cpu_total / self._cpu_samples
