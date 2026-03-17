@@ -23,3 +23,6 @@ seaborn==0.13.0
 
 # Jupyter (optional but useful)
 jupyter==1.0.0
+
+# For UI
+streamlit>=1.30.0
