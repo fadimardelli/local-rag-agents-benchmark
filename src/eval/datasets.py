@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from src.data import LegalBenchRAGData, load_legalbench_contractnli
-from src.config.defaults import CONTRACTNLI_ORIG_TEST_PATH
+from src.config.defaults import CONTRACTNLI_ORIG_TEST_PATH, HOTPOTQA_CASES_PATH
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,13 @@ class ContractNLIOriginalCase:
     file_name: str
     gold_label: str
     gold_spans: List[Tuple[int, int]]
+
+
+@dataclass(frozen=True)
+class HotpotQACase:
+    query: str
+    gold_answer: str
+    supporting_titles: List[str]
 
 
 def iter_contractnli_cases(limit: Optional[int] = None) -> Iterable[ContractNLITestCase]:
@@ -49,17 +56,39 @@ def iter_contractnli_cases(limit: Optional[int] = None) -> Iterable[ContractNLIT
         )
 
 
+def iter_contractnli_cases_window(
+    offset: int = 0,
+    limit: Optional[int] = None,
+) -> Iterable[ContractNLITestCase]:
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
+    skipped = 0
+    emitted = 0
+    for case in iter_contractnli_cases(limit=None):
+        if skipped < offset:
+            skipped += 1
+            continue
+        yield case
+        emitted += 1
+        if limit is not None and emitted >= limit:
+            return
+
+
 def iter_contractnli_original_cases(
     split_path: Path = CONTRACTNLI_ORIG_TEST_PATH,
+    offset: int = 0,
     limit: Optional[int] = None,
 ) -> Iterable[ContractNLIOriginalCase]:
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
     if not split_path.exists():
         raise FileNotFoundError(f"Missing ContractNLI original split: {split_path}")
     data = json.loads(split_path.read_text(encoding="utf-8"))
     documents = data.get("documents", [])
     labels = data.get("labels", {})
 
-    # Build map of doc_id -> doc for faster access
+    skipped = 0
+    emitted = 0
     for doc in documents:
         doc_id = doc.get("id")
         file_name = doc.get("file_name")
@@ -81,14 +110,48 @@ def iter_contractnli_original_cases(
                 if 0 <= idx < len(spans):
                     start, end = spans[idx]
                     gold_spans.append((int(start), int(end)))
+            if skipped < offset:
+                skipped += 1
+                continue
             yield ContractNLIOriginalCase(
                 query=hypo,
                 file_name=file_name or str(doc_id),
                 gold_label=choice,
                 gold_spans=gold_spans,
             )
+            emitted += 1
+            if limit is not None and emitted >= limit:
+                return
 
-            if limit is not None:
-                limit -= 1
-                if limit <= 0:
-                    return
+
+def iter_hotpotqa_cases(
+    cases_path: Path = HOTPOTQA_CASES_PATH,
+    offset: int = 0,
+    limit: Optional[int] = None,
+) -> Iterable[HotpotQACase]:
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
+    if not cases_path.exists():
+        raise FileNotFoundError(f"Missing HotpotQA cases file: {cases_path}")
+
+    count = 0
+    skipped = 0
+    with cases_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            row = json.loads(line)
+            query = row.get("question")
+            answer = row.get("answer")
+            supporting_titles = row.get("supporting_titles") or []
+            if not query or answer is None:
+                continue
+            if skipped < offset:
+                skipped += 1
+                continue
+            yield HotpotQACase(
+                query=query,
+                gold_answer=answer,
+                supporting_titles=supporting_titles,
+            )
+            count += 1
+            if limit is not None and count >= limit:
+                return

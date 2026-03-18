@@ -13,7 +13,7 @@ from src.config.defaults import (
 )
 from src.rag.context_builder import build_context
 from src.rag.llama_cpp import LlamaCppModel
-from src.rag.prompts import LABEL_SYSTEM_PROMPT, SYSTEM_PROMPT, build_user_prompt
+from src.rag.prompts import HOTPOT_SYSTEM_PROMPT, LABEL_SYSTEM_PROMPT, SYSTEM_PROMPT, build_user_prompt
 from src.rag.retriever import RetrievedChunk, Retriever
 
 
@@ -112,6 +112,35 @@ class AgenticRAG:
 
         user_prompt = build_user_prompt(context=context, question=question)
         answer = self.model.generate(LABEL_SYSTEM_PROMPT, user_prompt)
+
+        return AgenticResult(
+            answer=answer,
+            retrieved=retrieved,
+            used=used,
+            iterations=len(refined_queries) + 1,
+            refined_queries=refined_queries,
+        )
+
+    def run_hotpot(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> AgenticResult:
+        refined_queries: List[str] = []
+        retrieved: List[RetrievedChunk] = []
+        used: List[RetrievedChunk] = []
+        current_query = question
+
+        for i in range(AGENTIC_MAX_ITERS):
+            retrieved = self.retriever.retrieve(current_query, k=top_k)
+            context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
+
+            if self._assess_sufficiency(question, context):
+                break
+
+            if i < AGENTIC_MAX_ITERS - 1:
+                refined = self._refine_query(question, context)
+                refined_queries.append(refined)
+                current_query = refined
+
+        user_prompt = build_user_prompt(context=context, question=question)
+        answer = self.model.generate(HOTPOT_SYSTEM_PROMPT, user_prompt)
 
         return AgenticResult(
             answer=answer,

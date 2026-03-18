@@ -4,12 +4,23 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
-from src.eval.datasets import ContractNLITestCase, ContractNLIOriginalCase
-from src.eval.metrics import answer_correctness, evidence_recall_multi, evidence_recall_multi_file
-from pathlib import Path
+from src.eval.datasets import ContractNLITestCase, ContractNLIOriginalCase, HotpotQACase
+from src.eval.metrics import (
+    answer_correctness,
+    answer_exact_match,
+    answer_f1,
+    evidence_recall_multi,
+    evidence_recall_multi_file,
+    supporting_doc_recall,
+)
 
 from src.rag import AgenticRAG, TraditionalRAG, Retriever
-from src.config.defaults import CONTRACTNLI_ORIG_INDEX_PATH, CONTRACTNLI_ORIG_META_PATH
+from src.config.defaults import (
+    CONTRACTNLI_ORIG_INDEX_PATH,
+    CONTRACTNLI_ORIG_META_PATH,
+    HOTPOTQA_INDEX_PATH,
+    HOTPOTQA_META_PATH,
+)
 from src.utils.memory import PeakMemory
 from src.utils.timers import Timer
 
@@ -27,6 +38,8 @@ class EvalResult:
     iterations: int
     prompt_chars: int
     answer_chars: int
+    supporting_doc_recall: Optional[float] = None
+    answer_f1: Optional[float] = None
 
 
 def _estimate_context_chars(chunks: List) -> int:
@@ -50,6 +63,7 @@ def run_eval(
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
 
+    cases_list = list(cases)
     results: List[EvalResult] = []
     rag = (
         TraditionalRAG(model_path=model_path)
@@ -57,12 +71,10 @@ def run_eval(
         else AgenticRAG(model_path=model_path)
     )
 
-    if warmup:
-        first_case = next(iter(cases), None)
-        if first_case is not None:
-            _ = rag.run(first_case.query)
+    if warmup and cases_list:
+        _ = rag.run_hotpot(cases_list[0].query)
 
-    for case in cases:
+    for case in cases_list:
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
                 out = rag.run(case.query)
@@ -96,6 +108,8 @@ def run_eval(
                 iterations=iterations,
                 prompt_chars=prompt_chars,
                 answer_chars=answer_chars,
+                supporting_doc_recall=None,
+                answer_f1=None,
             )
         )
 
@@ -112,6 +126,7 @@ def run_eval_contractnli_original(
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
 
+    cases_list = list(cases)
     retriever = Retriever(
         index_path=CONTRACTNLI_ORIG_INDEX_PATH,
         meta_path=CONTRACTNLI_ORIG_META_PATH,
@@ -122,8 +137,8 @@ def run_eval_contractnli_original(
         else AgenticRAG(retriever=retriever, model_path=model_path)
     )
 
-    if warmup:
-        first_case = next(iter(cases), None)
+    if warmup and cases_list:
+        first_case = cases_list[0]
         if first_case is not None:
             if mode == "traditional":
                 _ = rag.run_label(first_case.query) if label_mode else rag.run(first_case.query)
@@ -131,7 +146,7 @@ def run_eval_contractnli_original(
                 _ = rag.run_label(first_case.query) if label_mode else rag.run(first_case.query)
 
     results: List[EvalResult] = []
-    for case in cases:
+    for case in cases_list:
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
                 out = rag.run_label(case.query) if label_mode else rag.run(case.query)
@@ -166,6 +181,73 @@ def run_eval_contractnli_original(
                 iterations=iterations,
                 prompt_chars=prompt_chars,
                 answer_chars=answer_chars,
+                supporting_doc_recall=None,
+                answer_f1=None,
+            )
+        )
+
+    return results
+
+
+def run_eval_hotpotqa(
+    cases: Iterable[HotpotQACase],
+    mode: str,
+    warmup: bool = False,
+    model_path: Optional[Path] = None,
+) -> List[EvalResult]:
+    if mode not in {"traditional", "agentic"}:
+        raise ValueError("mode must be 'traditional' or 'agentic'")
+
+    cases_list = list(cases)
+    retriever = Retriever(
+        index_path=HOTPOTQA_INDEX_PATH,
+        meta_path=HOTPOTQA_META_PATH,
+    )
+    rag = (
+        TraditionalRAG(retriever=retriever, model_path=model_path)
+        if mode == "traditional"
+        else AgenticRAG(retriever=retriever, model_path=model_path)
+    )
+
+    if warmup and cases_list:
+        _ = rag.run(cases_list[0].query)
+
+    results: List[EvalResult] = []
+    for case in cases_list:
+        with PeakMemory() as mem, Timer() as timer:
+            if mode == "traditional":
+                out = rag.run_hotpot(case.query)
+                iterations = 1
+                retrieval_calls = 1
+            else:
+                out = rag.run_hotpot(case.query)
+                iterations = out.iterations
+                retrieval_calls = out.iterations
+
+        used = out.used
+        retrieved_context_chars = _estimate_context_chars(used)
+        prompt_chars = _estimate_prompt_chars(retrieved_context_chars, case.query)
+        answer_chars = len(out.answer)
+        correct = answer_exact_match(out.answer, case.gold_answer)
+        f1 = answer_f1(out.answer, case.gold_answer)
+        supp_recall = supporting_doc_recall(used, case.supporting_titles)
+        ev_recall = supp_recall == 1.0
+
+        results.append(
+            EvalResult(
+                query=case.query,
+                answer=out.answer,
+                correct=correct,
+                evidence_recall=ev_recall,
+                latency_s=timer.elapsed,
+                peak_rss_bytes=mem.peak_rss_bytes,
+                retrieval_calls=retrieval_calls,
+                retrieved_context_chars=retrieved_context_chars,
+                iterations=iterations,
+                prompt_chars=prompt_chars,
+                answer_chars=answer_chars,
+                supporting_doc_recall=supp_recall,
+                answer_f1=f1,
             )
         )
 
@@ -178,6 +260,8 @@ def summarize(results: List[EvalResult]) -> Dict[str, float]:
     latencies = [r.latency_s for r in results]
     evidence = [1.0 if r.evidence_recall else 0.0 for r in results]
     correct_vals = [r.correct for r in results if r.correct is not None]
+    supporting_vals = [r.supporting_doc_recall for r in results if r.supporting_doc_recall is not None]
+    f1_vals = [r.answer_f1 for r in results if r.answer_f1 is not None]
     summary = {
         "count": float(len(results)),
         "latency_median_s": float(statistics.median(latencies)),
@@ -196,6 +280,10 @@ def summarize(results: List[EvalResult]) -> Dict[str, float]:
     }
     if correct_vals:
         summary["answer_accuracy"] = float(sum(1 for c in correct_vals if c) / len(correct_vals))
+    if supporting_vals:
+        summary["supporting_doc_recall_mean"] = float(sum(supporting_vals) / len(supporting_vals))
+    if f1_vals:
+        summary["answer_f1_mean"] = float(sum(f1_vals) / len(f1_vals))
     return summary
 
 

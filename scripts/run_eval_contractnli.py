@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from src.eval.datasets import iter_contractnli_cases
+from src.eval.datasets import iter_contractnli_cases_window
 from src.eval.harness import run_eval, summarize, write_results
 from src.config.defaults import LLAMA_GGUF_PATH_3B, LLAMA_GGUF_PATH_8B
 
@@ -10,6 +10,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["traditional", "agentic"], required=True)
     parser.add_argument("--limit", type=int, default=50)
+    parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--output-jsonl", type=str, default="")
     parser.add_argument("--output-csv", type=str, default="")
     parser.add_argument("--summary-csv", type=str, default="")
@@ -18,7 +19,7 @@ def main() -> None:
     parser.add_argument("--model-path", type=str, default="")
     args = parser.parse_args()
 
-    cases = list(iter_contractnli_cases(limit=args.limit))
+    cases = list(iter_contractnli_cases_window(offset=args.offset, limit=args.limit))
     if args.model_path:
         model_path = Path(args.model_path)
     else:

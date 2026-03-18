@@ -19,6 +19,12 @@ LABEL_SYSTEM_PROMPT = (
     "Do not output anything else."
 )
 
+HOTPOT_SYSTEM_PROMPT = (
+    "Answer the question using only the provided context. "
+    "Return only the final short answer text. "
+    "Do not add explanation, prefix, or extra words."
+)
+
 
 def build_user_prompt(context: str, question: str) -> str:
     return USER_TEMPLATE.format(context=context, question=question)

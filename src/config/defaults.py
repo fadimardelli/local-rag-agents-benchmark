@@ -24,6 +24,13 @@ CONTRACTNLI_ORIG_TEST_PATH = CONTRACTNLI_ORIG_DIR / "test.json"
 CONTRACTNLI_ORIG_INDEX_PATH = INDEX_DIR / "contractnli_original.faiss"
 CONTRACTNLI_ORIG_META_PATH = INDEX_DIR / "contractnli_original_meta.jsonl"
 
+# HotpotQA (multi-document) dataset artifacts
+HOTPOTQA_DIR = DATA_ROOT / "hotpotqa"
+HOTPOTQA_CASES_PATH = HOTPOTQA_DIR / "hotpotqa_validation_cases.jsonl"
+HOTPOTQA_CORPUS_PATH = HOTPOTQA_DIR / "hotpotqa_validation_corpus.jsonl"
+HOTPOTQA_INDEX_PATH = INDEX_DIR / "hotpotqa.faiss"
+HOTPOTQA_META_PATH = INDEX_DIR / "hotpotqa_meta.jsonl"
+
 # Retrieval defaults
 RETRIEVAL_TOP_K = 5
 

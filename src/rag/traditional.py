@@ -12,7 +12,7 @@ from src.config.defaults import (
 )
 from src.rag.context_builder import build_context
 from src.rag.llama_cpp import LlamaCppModel
-from src.rag.prompts import LABEL_SYSTEM_PROMPT, SYSTEM_PROMPT, build_user_prompt
+from src.rag.prompts import HOTPOT_SYSTEM_PROMPT, LABEL_SYSTEM_PROMPT, SYSTEM_PROMPT, build_user_prompt
 from src.rag.retriever import RetrievedChunk, Retriever
 
 
@@ -50,4 +50,11 @@ class TraditionalRAG:
         context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
         user_prompt = build_user_prompt(context=context, question=question)
         answer = self.model.generate(LABEL_SYSTEM_PROMPT, user_prompt)
+        return RAGResult(answer=answer, retrieved=retrieved, used=used)
+
+    def run_hotpot(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> RAGResult:
+        retrieved = self.retriever.retrieve(question, k=top_k)
+        context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
+        user_prompt = build_user_prompt(context=context, question=question)
+        answer = self.model.generate(HOTPOT_SYSTEM_PROMPT, user_prompt)
         return RAGResult(answer=answer, retrieved=retrieved, used=used)
