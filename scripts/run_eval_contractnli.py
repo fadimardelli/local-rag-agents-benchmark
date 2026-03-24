@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 from src.eval.datasets import iter_contractnli_cases_window
-from src.eval.harness import run_eval, summarize, write_results
+from src.eval.harness import run_eval, select_summary_view, summarize, write_results
 from src.config.defaults import LLAMA_GGUF_PATH_3B, LLAMA_GGUF_PATH_8B
 
 
@@ -14,6 +14,9 @@ def main() -> None:
     parser.add_argument("--output-jsonl", type=str, default="")
     parser.add_argument("--output-csv", type=str, default="")
     parser.add_argument("--summary-csv", type=str, default="")
+    parser.add_argument("--summary-view", choices=["all", "thesis", "calibration"], default="thesis")
+    parser.add_argument("--run-id", type=str, default="")
+    parser.add_argument("--batch-id", type=str, default="")
     parser.add_argument("--warmup", action="store_true", help="Run one warm-up query before timing")
     parser.add_argument("--model", choices=["8b", "3b"], default="8b")
     parser.add_argument("--model-path", type=str, default="")
@@ -25,9 +28,17 @@ def main() -> None:
     else:
         model_path = LLAMA_GGUF_PATH_3B if args.model == "3b" else LLAMA_GGUF_PATH_8B
 
-    results = run_eval(cases, mode=args.mode, warmup=args.warmup, model_path=model_path)
+    batch_id = args.batch_id or f"off{args.offset}_lim{args.limit}"
+    results = run_eval(
+        cases,
+        mode=args.mode,
+        warmup=args.warmup,
+        model_path=model_path,
+        run_id=args.run_id,
+        batch_id=batch_id,
+    )
 
-    summary = summarize(results)
+    summary = select_summary_view(summarize(results), args.summary_view)
     print("\nSummary:\n")
     for k, v in summary.items():
         print(f"{k}: {v}")

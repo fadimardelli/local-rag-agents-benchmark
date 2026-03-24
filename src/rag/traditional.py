@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import List, Optional
 
 from src.config.defaults import (
@@ -21,6 +22,11 @@ class RAGResult:
     answer: str
     retrieved: List[RetrievedChunk]
     used: List[RetrievedChunk]
+    retrieval_latency_s: float
+    generation_latency_s: float
+    retrieved_context_tokens: int
+    prompt_tokens: int
+    answer_tokens: int
 
 
 class TraditionalRAG:
@@ -39,22 +45,61 @@ class TraditionalRAG:
         )
 
     def run(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> RAGResult:
+        retrieval_started = perf_counter()
         retrieved = self.retriever.retrieve(question, k=top_k)
+        retrieval_latency_s = perf_counter() - retrieval_started
         context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
         user_prompt = build_user_prompt(context=context, question=question)
+        generation_started = perf_counter()
         answer = self.model.generate(SYSTEM_PROMPT, user_prompt)
-        return RAGResult(answer=answer, retrieved=retrieved, used=used)
+        generation_latency_s = perf_counter() - generation_started
+        return RAGResult(
+            answer=answer,
+            retrieved=retrieved,
+            used=used,
+            retrieval_latency_s=retrieval_latency_s,
+            generation_latency_s=generation_latency_s,
+            retrieved_context_tokens=self.model.count_tokens(context),
+            prompt_tokens=self.model.count_tokens(SYSTEM_PROMPT) + self.model.count_tokens(user_prompt),
+            answer_tokens=self.model.count_tokens(answer),
+        )
 
     def run_label(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> RAGResult:
+        retrieval_started = perf_counter()
         retrieved = self.retriever.retrieve(question, k=top_k)
+        retrieval_latency_s = perf_counter() - retrieval_started
         context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
         user_prompt = build_user_prompt(context=context, question=question)
+        generation_started = perf_counter()
         answer = self.model.generate(LABEL_SYSTEM_PROMPT, user_prompt)
-        return RAGResult(answer=answer, retrieved=retrieved, used=used)
+        generation_latency_s = perf_counter() - generation_started
+        return RAGResult(
+            answer=answer,
+            retrieved=retrieved,
+            used=used,
+            retrieval_latency_s=retrieval_latency_s,
+            generation_latency_s=generation_latency_s,
+            retrieved_context_tokens=self.model.count_tokens(context),
+            prompt_tokens=self.model.count_tokens(LABEL_SYSTEM_PROMPT) + self.model.count_tokens(user_prompt),
+            answer_tokens=self.model.count_tokens(answer),
+        )
 
     def run_hotpot(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> RAGResult:
+        retrieval_started = perf_counter()
         retrieved = self.retriever.retrieve(question, k=top_k)
+        retrieval_latency_s = perf_counter() - retrieval_started
         context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
         user_prompt = build_user_prompt(context=context, question=question)
+        generation_started = perf_counter()
         answer = self.model.generate(HOTPOT_SYSTEM_PROMPT, user_prompt)
-        return RAGResult(answer=answer, retrieved=retrieved, used=used)
+        generation_latency_s = perf_counter() - generation_started
+        return RAGResult(
+            answer=answer,
+            retrieved=retrieved,
+            used=used,
+            retrieval_latency_s=retrieval_latency_s,
+            generation_latency_s=generation_latency_s,
+            retrieved_context_tokens=self.model.count_tokens(context),
+            prompt_tokens=self.model.count_tokens(HOTPOT_SYSTEM_PROMPT) + self.model.count_tokens(user_prompt),
+            answer_tokens=self.model.count_tokens(answer),
+        )

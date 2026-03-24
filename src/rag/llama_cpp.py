@@ -37,3 +37,8 @@ class LlamaCppModel:
             max_tokens=self.max_tokens,
         )
         return output["choices"][0]["message"]["content"].strip()
+
+    def count_tokens(self, text: str) -> int:
+        if not text:
+            return 0
+        return len(self.model.tokenize(text.encode("utf-8")))

@@ -1,6 +1,7 @@
 import json
 import statistics
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
@@ -16,6 +17,7 @@ from src.eval.metrics import (
 
 from src.rag import AgenticRAG, TraditionalRAG, Retriever
 from src.config.defaults import (
+    AGENTIC_MAX_ITERS,
     CONTRACTNLI_ORIG_INDEX_PATH,
     CONTRACTNLI_ORIG_META_PATH,
     HOTPOTQA_INDEX_PATH,
@@ -24,20 +26,75 @@ from src.config.defaults import (
 from src.utils.memory import PeakMemory
 from src.utils.timers import Timer
 
+THESIS_SUMMARY_KEYS = [
+    "count",
+    "answer_accuracy",
+    "answer_f1_mean",
+    "evidence_recall_mean",
+    "topk_hit_rate",
+    "supporting_doc_recall_mean",
+    "latency_median_s",
+    "latency_p95_s",
+    "latency_max_s",
+    "peak_rss_bytes_max",
+    "retrieval_calls_mean",
+    "iterations_mean",
+    "iterations_max",
+    "max_iterations_hit_rate",
+    "retrieved_context_tokens_mean",
+    "prompt_tokens_mean",
+    "answer_tokens_mean",
+    "retrieval_latency_mean_s",
+    "generation_latency_mean_s",
+]
+
+CALIBRATION_SUMMARY_KEYS = [
+    "queries_in_batch",
+    "success_count",
+    "timeout_count",
+    "error_count",
+    "timeout_rate",
+    "error_rate",
+    "batch_start_time_utc",
+    "batch_end_time_utc",
+    "batch_first_k_latency_median_s",
+    "batch_first_third_latency_median_s",
+    "batch_last_third_latency_median_s",
+    "batch_latency_drift_abs_s",
+    "batch_latency_drift_pct",
+]
+
 
 @dataclass
 class EvalResult:
+    run_id: str
+    batch_id: str
+    query_index_in_batch: int
+    timestamp_start: str
+    timestamp_end: str
     query: str
     answer: str
     correct: Optional[bool]
     evidence_recall: bool
+    topk_hit: bool
     latency_s: float
     peak_rss_bytes: int
     retrieval_calls: int
     retrieved_context_chars: int
+    retrieved_context_tokens: int
     iterations: int
     prompt_chars: int
+    prompt_tokens: int
     answer_chars: int
+    answer_tokens: int
+    retrieval_latency_s: float
+    generation_latency_s: float
+    timed_out: bool = False
+    error: bool = False
+    error_message: Optional[str] = None
+    success_flag: bool = True
+    timeout_flag: bool = False
+    error_flag: bool = False
     supporting_doc_recall: Optional[float] = None
     answer_f1: Optional[float] = None
 
@@ -59,6 +116,8 @@ def run_eval(
     mode: str,
     warmup: bool = False,
     model_path: Optional[Path] = None,
+    run_id: str = "",
+    batch_id: str = "",
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
@@ -72,9 +131,11 @@ def run_eval(
     )
 
     if warmup and cases_list:
-        _ = rag.run_hotpot(cases_list[0].query)
+        for case in cases_list[:2]:
+            _ = rag.run(case.query)
 
-    for case in cases_list:
+    for idx, case in enumerate(cases_list):
+        started_at = datetime.now(timezone.utc)
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
                 out = rag.run(case.query)
@@ -84,12 +145,17 @@ def run_eval(
                 out = rag.run(case.query)
                 iterations = out.iterations
                 retrieval_calls = out.iterations
+        ended_at = datetime.now(timezone.utc)
 
         used = out.used
         retrieved_context_chars = _estimate_context_chars(used)
         prompt_chars = _estimate_prompt_chars(retrieved_context_chars, case.query)
         answer_chars = len(out.answer)
         correct = answer_correctness(out.answer, case.gold_answer)
+        topk_hit = evidence_recall_multi_file(
+            used_chunks=out.retrieved,
+            gold_spans=case.gold_spans,
+        )
         ev_recall = evidence_recall_multi_file(
             used_chunks=used,
             gold_spans=case.gold_spans,
@@ -97,17 +163,28 @@ def run_eval(
 
         results.append(
             EvalResult(
+                run_id=run_id,
+                batch_id=batch_id,
+                query_index_in_batch=idx,
+                timestamp_start=started_at.isoformat(),
+                timestamp_end=ended_at.isoformat(),
                 query=case.query,
                 answer=out.answer,
                 correct=correct,
                 evidence_recall=ev_recall,
+                topk_hit=topk_hit,
                 latency_s=timer.elapsed,
                 peak_rss_bytes=mem.peak_rss_bytes,
                 retrieval_calls=retrieval_calls,
                 retrieved_context_chars=retrieved_context_chars,
+                retrieved_context_tokens=out.retrieved_context_tokens,
                 iterations=iterations,
                 prompt_chars=prompt_chars,
+                prompt_tokens=out.prompt_tokens,
                 answer_chars=answer_chars,
+                answer_tokens=out.answer_tokens,
+                retrieval_latency_s=out.retrieval_latency_s,
+                generation_latency_s=out.generation_latency_s,
                 supporting_doc_recall=None,
                 answer_f1=None,
             )
@@ -122,6 +199,8 @@ def run_eval_contractnli_original(
     label_mode: bool = False,
     warmup: bool = False,
     model_path: Optional[Path] = None,
+    run_id: str = "",
+    batch_id: str = "",
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
@@ -138,15 +217,15 @@ def run_eval_contractnli_original(
     )
 
     if warmup and cases_list:
-        first_case = cases_list[0]
-        if first_case is not None:
+        for case in cases_list[:2]:
             if mode == "traditional":
-                _ = rag.run_label(first_case.query) if label_mode else rag.run(first_case.query)
+                _ = rag.run_label(case.query) if label_mode else rag.run(case.query)
             else:
-                _ = rag.run_label(first_case.query) if label_mode else rag.run(first_case.query)
+                _ = rag.run_label(case.query) if label_mode else rag.run(case.query)
 
     results: List[EvalResult] = []
-    for case in cases_list:
+    for idx, case in enumerate(cases_list):
+        started_at = datetime.now(timezone.utc)
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
                 out = rag.run_label(case.query) if label_mode else rag.run(case.query)
@@ -156,12 +235,18 @@ def run_eval_contractnli_original(
                 out = rag.run_label(case.query) if label_mode else rag.run(case.query)
                 iterations = out.iterations
                 retrieval_calls = out.iterations
+        ended_at = datetime.now(timezone.utc)
 
         used = out.used
         retrieved_context_chars = _estimate_context_chars(used)
         prompt_chars = _estimate_prompt_chars(retrieved_context_chars, case.query)
         answer_chars = len(out.answer)
         correct = answer_correctness(out.answer, case.gold_label)
+        topk_hit = evidence_recall_multi(
+            used_chunks=out.retrieved,
+            gold_file_name=case.file_name,
+            gold_spans=case.gold_spans,
+        )
         ev_recall = evidence_recall_multi(
             used_chunks=used,
             gold_file_name=case.file_name,
@@ -170,17 +255,28 @@ def run_eval_contractnli_original(
 
         results.append(
             EvalResult(
+                run_id=run_id,
+                batch_id=batch_id,
+                query_index_in_batch=idx,
+                timestamp_start=started_at.isoformat(),
+                timestamp_end=ended_at.isoformat(),
                 query=case.query,
                 answer=out.answer,
                 correct=correct,
                 evidence_recall=ev_recall,
+                topk_hit=topk_hit,
                 latency_s=timer.elapsed,
                 peak_rss_bytes=mem.peak_rss_bytes,
                 retrieval_calls=retrieval_calls,
                 retrieved_context_chars=retrieved_context_chars,
+                retrieved_context_tokens=out.retrieved_context_tokens,
                 iterations=iterations,
                 prompt_chars=prompt_chars,
+                prompt_tokens=out.prompt_tokens,
                 answer_chars=answer_chars,
+                answer_tokens=out.answer_tokens,
+                retrieval_latency_s=out.retrieval_latency_s,
+                generation_latency_s=out.generation_latency_s,
                 supporting_doc_recall=None,
                 answer_f1=None,
             )
@@ -194,6 +290,8 @@ def run_eval_hotpotqa(
     mode: str,
     warmup: bool = False,
     model_path: Optional[Path] = None,
+    run_id: str = "",
+    batch_id: str = "",
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
@@ -210,10 +308,12 @@ def run_eval_hotpotqa(
     )
 
     if warmup and cases_list:
-        _ = rag.run(cases_list[0].query)
+        for case in cases_list[:2]:
+            _ = rag.run_hotpot(case.query)
 
     results: List[EvalResult] = []
-    for case in cases_list:
+    for idx, case in enumerate(cases_list):
+        started_at = datetime.now(timezone.utc)
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
                 out = rag.run_hotpot(case.query)
@@ -223,6 +323,7 @@ def run_eval_hotpotqa(
                 out = rag.run_hotpot(case.query)
                 iterations = out.iterations
                 retrieval_calls = out.iterations
+        ended_at = datetime.now(timezone.utc)
 
         used = out.used
         retrieved_context_chars = _estimate_context_chars(used)
@@ -231,21 +332,33 @@ def run_eval_hotpotqa(
         correct = answer_exact_match(out.answer, case.gold_answer)
         f1 = answer_f1(out.answer, case.gold_answer)
         supp_recall = supporting_doc_recall(used, case.supporting_titles)
+        topk_hit = supporting_doc_recall(out.retrieved, case.supporting_titles) > 0.0
         ev_recall = supp_recall == 1.0
 
         results.append(
             EvalResult(
+                run_id=run_id,
+                batch_id=batch_id,
+                query_index_in_batch=idx,
+                timestamp_start=started_at.isoformat(),
+                timestamp_end=ended_at.isoformat(),
                 query=case.query,
                 answer=out.answer,
                 correct=correct,
                 evidence_recall=ev_recall,
+                topk_hit=topk_hit,
                 latency_s=timer.elapsed,
                 peak_rss_bytes=mem.peak_rss_bytes,
                 retrieval_calls=retrieval_calls,
                 retrieved_context_chars=retrieved_context_chars,
+                retrieved_context_tokens=out.retrieved_context_tokens,
                 iterations=iterations,
                 prompt_chars=prompt_chars,
+                prompt_tokens=out.prompt_tokens,
                 answer_chars=answer_chars,
+                answer_tokens=out.answer_tokens,
+                retrieval_latency_s=out.retrieval_latency_s,
+                generation_latency_s=out.generation_latency_s,
                 supporting_doc_recall=supp_recall,
                 answer_f1=f1,
             )
@@ -258,26 +371,64 @@ def summarize(results: List[EvalResult]) -> Dict[str, float]:
     if not results:
         return {}
     latencies = [r.latency_s for r in results]
+    one_third = max(1, len(results) // 3)
+    first_third_latencies = [r.latency_s for r in results[:one_third]]
+    last_third_latencies = [r.latency_s for r in results[-one_third:]]
     evidence = [1.0 if r.evidence_recall else 0.0 for r in results]
+    topk_hits = [1.0 if r.topk_hit else 0.0 for r in results]
     correct_vals = [r.correct for r in results if r.correct is not None]
     supporting_vals = [r.supporting_doc_recall for r in results if r.supporting_doc_recall is not None]
     f1_vals = [r.answer_f1 for r in results if r.answer_f1 is not None]
+    timeout_vals = [1.0 if r.timed_out else 0.0 for r in results]
+    error_vals = [1.0 if r.error else 0.0 for r in results]
     summary = {
         "count": float(len(results)),
+        "queries_in_batch": float(len(results)),
+        "success_count": float(sum(1.0 for r in results if r.success_flag)),
+        "timeout_count": float(sum(1.0 for r in results if r.timeout_flag)),
+        "error_count": float(sum(1.0 for r in results if r.error_flag)),
+        "batch_start_time_utc": results[0].timestamp_start,
+        "batch_end_time_utc": results[-1].timestamp_end,
         "latency_median_s": float(statistics.median(latencies)),
         "latency_p95_s": float(statistics.quantiles(latencies, n=20)[-1])
         if len(latencies) >= 20
         else float(max(latencies)),
+        "latency_max_s": float(max(latencies)),
         "evidence_recall_mean": float(sum(evidence) / len(evidence)),
+        "topk_hit_rate": float(sum(topk_hits) / len(topk_hits)),
+        "timeout_rate": float(sum(timeout_vals) / len(timeout_vals)),
+        "error_rate": float(sum(error_vals) / len(error_vals)),
         "peak_rss_bytes_max": float(max(r.peak_rss_bytes for r in results)),
         "retrieval_calls_mean": float(sum(r.retrieval_calls for r in results) / len(results)),
         "iterations_mean": float(sum(r.iterations for r in results) / len(results)),
+        "iterations_max": float(max(r.iterations for r in results)),
+        "max_iterations_hit_rate": float(
+            sum(1.0 for r in results if r.iterations >= AGENTIC_MAX_ITERS) / len(results)
+        ),
         "retrieved_context_chars_mean": float(
             sum(r.retrieved_context_chars for r in results) / len(results)
         ),
+        "retrieved_context_tokens_mean": float(
+            sum(r.retrieved_context_tokens for r in results) / len(results)
+        ),
         "prompt_chars_mean": float(sum(r.prompt_chars for r in results) / len(results)),
+        "prompt_tokens_mean": float(sum(r.prompt_tokens for r in results) / len(results)),
         "answer_chars_mean": float(sum(r.answer_chars for r in results) / len(results)),
+        "answer_tokens_mean": float(sum(r.answer_tokens for r in results) / len(results)),
+        "retrieval_latency_mean_s": float(sum(r.retrieval_latency_s for r in results) / len(results)),
+        "generation_latency_mean_s": float(sum(r.generation_latency_s for r in results) / len(results)),
+        "batch_first_k_latency_median_s": float(statistics.median(latencies[: min(5, len(latencies))])),
+        "batch_first_third_latency_median_s": float(statistics.median(first_third_latencies)),
+        "batch_last_third_latency_median_s": float(statistics.median(last_third_latencies)),
     }
+    summary["batch_latency_drift_abs_s"] = (
+        summary["batch_last_third_latency_median_s"] - summary["batch_first_third_latency_median_s"]
+    )
+    summary["batch_latency_drift_pct"] = (
+        (summary["batch_latency_drift_abs_s"] / summary["batch_first_third_latency_median_s"])
+        if summary["batch_first_third_latency_median_s"] > 0
+        else 0.0
+    )
     if correct_vals:
         summary["answer_accuracy"] = float(sum(1 for c in correct_vals if c) / len(correct_vals))
     if supporting_vals:
@@ -315,3 +466,13 @@ def write_summary_csv(summary: Dict[str, float], output_path: Path) -> None:
         writer.writerow(["metric", "value"])
         for k, v in summary.items():
             writer.writerow([k, v])
+
+
+def select_summary_view(summary: Dict[str, float], view: str) -> Dict[str, float]:
+    if view == "all":
+        return summary
+    if view == "thesis":
+        return {k: summary[k] for k in THESIS_SUMMARY_KEYS if k in summary}
+    if view == "calibration":
+        return {k: summary[k] for k in CALIBRATION_SUMMARY_KEYS if k in summary}
+    raise ValueError("view must be one of: all, thesis, calibration")
