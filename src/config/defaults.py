@@ -31,8 +31,8 @@ RETRIEVAL_TOP_K = 5
 AGENTIC_MAX_ITERS = 3
 
 # LLM defaults (llama.cpp)
-LLAMA_GGUF_PATH_8B = Path("/Users/fadimardelli/models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
-LLAMA_GGUF_PATH_3B = Path("/Users/fadimardelli/models/Llama-3.2-3B-Instruct-Q4_K_M.gguf")
+LLAMA_GGUF_PATH_8B = Path(r"C:\Users\Carina\Desktop\Thesis\local-rag-agents-benchmark\models\Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
+LLAMA_GGUF_PATH_3B = Path(r"C:\Users\Carina\Desktop\Thesis\local-rag-agents-benchmark\models\Llama-3.2-3B-Instruct-Q4_K_M.gguf")
 LLAMA_GGUF_PATH = LLAMA_GGUF_PATH_8B
 LLAMA_N_CTX = 4096
 LLAMA_TEMPERATURE = 0.2

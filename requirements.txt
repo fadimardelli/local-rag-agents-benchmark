@@ -1,28 +1,28 @@
 # Core ML libraries
-sentence-transformers==2.7.0
-faiss-cpu==1.9.0.post1
-transformers==4.40.0
+sentence-transformers
+faiss-cpu
+transformers
 
 # Data handling
-pandas==2.2.0
-numpy==1.26.0
-datasets==2.18.0
+pandas
+numpy
+datasets
 
 # Utilities
-requests==2.31.0
-tqdm==4.66.0
-psutil==5.9.8
-rich==13.7.1
-llama-cpp-python==0.2.90
-huggingface-hub==0.19.4
+requests
+tqdm
+psutil
+rich
+llama-cpp-python
+huggingface-hub
 
 # Analysis
-scikit-learn==1.4.0
-matplotlib==3.8.0
-seaborn==0.13.0
+scikit-learn
+matplotlib
+seaborn
 
 # Jupyter (optional but useful)
-jupyter==1.0.0
+jupyter
 
 # For UI
-streamlit>=1.30.0
+streamlit

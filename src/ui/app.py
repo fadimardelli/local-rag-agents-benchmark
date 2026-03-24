@@ -1,5 +1,10 @@
 import streamlit as st
 import time
+from pathlib import Path
+
+# --- Import Fadi's Backend Code ---
+from src.rag.traditional import TraditionalRAG
+from src.config.defaults import LLAMA_GGUF_PATH_8B
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -8,9 +13,23 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Initialize Chat History in Session State ---
+# --- 1. THE HARDWARE TRAP FIX (Load Models Once) ---
+@st.cache_resource(show_spinner="Loading Llama-3 and FAISS into Memory... Please wait.")
+def initialize_backend():
+    """Initializes the heavy models only once."""
+    # We use the 8B model default path. 
+    # Fadi's TraditionalRAG automatically handles the FAISS index and Llama setup.
+    rag_engine = TraditionalRAG(model_path=LLAMA_GGUF_PATH_8B)
+    return rag_engine
+
+# Call the initialization
+rag = initialize_backend()
+
+# --- Initialize Chat History & Telemetry in Session State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "last_latency" not in st.session_state:
+    st.session_state.last_latency = 0.0
 
 # --- Sidebar: Controls & Telemetry ---
 with st.sidebar:
@@ -18,16 +37,7 @@ with st.sidebar:
     st.subheader("Resource-Aware Legal Assistant")
     st.divider()
     
-    # 1. Document Upload
-    st.markdown("**1. Ingestion**")
-    uploaded_file = st.file_uploader("Upload Contract (PDF/TXT)", type=["pdf", "txt"])
-    if uploaded_file:
-        st.success(f"Indexed: {uploaded_file.name}")
-    
-    st.divider()
-    
-    # 2. Workflow Selection
-    st.markdown("**2. Workflow Strategy**")
+    st.markdown("**1. Workflow Strategy**")
     workflow = st.radio(
         "Select Pipeline:",
         ["⚡ Traditional RAG (System A)", "🧠 Agentic Loop (System B)"],
@@ -36,19 +46,12 @@ with st.sidebar:
     
     st.divider()
     
-    # 3. Hardware Telemetry (Metrics)
     st.markdown("**3. Hardware Telemetry**")
-    st.caption("Live Local Metrics (Llama-3-8B Q4_K_M)")
+    st.caption("Live Local Metrics (Llama-3-8B)")
     
-    # In a real app, these values would update dynamically from your backend
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="VRAM Usage", value="5.8 GB", delta="-0.2 GB (stable)", delta_color="inverse")
-    with col2:
-        st.metric(label="RAM Usage", value="11.2 GB")
-        
-    st.metric(label="Decode Speed", value="12.4 tok/s")
-    st.metric(label="Time to First Token", value="3.2 s" if "Traditional" in workflow else "Pending...")
+    # We update the latency dynamically based on the last run
+    st.metric(label="Last Query Latency", value=f"{st.session_state.last_latency:.2f} s")
+    st.metric(label="VRAM Config", value="Q4_K_M (Quantized)")
 
 # --- Main Chat Interface ---
 st.header("Legal Document Q&A")
@@ -57,42 +60,57 @@ st.header("Legal Document Q&A")
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+        # If the message has retrieved evidence attached, display it in an expander
+        if "evidence" in msg and msg["evidence"]:
+            with st.expander("🔍 View Retrieved Evidence"):
+                for chunk in msg["evidence"]:
+                    st.info(chunk)
 
 # User Input
-if prompt := st.chat_input("Ask a question about the liability clause..."):
-    # 1. Add user message to state and display it
+if prompt := st.chat_input("Ask a question about the contract..."):
+    # Add user message to state and display it
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 2. Assistant Response Logic
+    # Assistant Response Logic
     with st.chat_message("assistant"):
         
         # --- IF TRADITIONAL RAG (SYSTEM A) ---
         if "Traditional" in workflow:
-            with st.spinner("Retrieving and generating (Linear)..."):
-                time.sleep(1.5) # Simulate fast TTFT
-                response = "Based on the retrieved context, the liability clause limits damages to the total amount paid under the contract. *(Note: This is a single-shot retrieval.)*"
-                st.write(response)
+            with st.spinner("System A: Retrieving and generating..."):
+                
+                # Start the timer!
+                start_time = time.time()
+                
+                # RUN FADI'S CODE
+                result = rag.run(prompt)
+                
+                # Stop the timer!
+                end_time = time.time()
+                st.session_state.last_latency = end_time - start_time
+                
+                # Display the final answer
+                st.write(result.answer)
+                
+                # Format the evidence chunks for the UI
+                evidence_list = []
+                with st.expander("🔍 View Retrieved Evidence", expanded=False):
+                    for i, chunk in enumerate(result.used, 1):
+                        evidence_text = f"**Source:** {chunk.doc_path} (Chars: {chunk.start}-{chunk.end}) | **Relevance Score:** {chunk.score:.4f}\n\n> {chunk.text.strip()}"
+                        evidence_list.append(evidence_text)
+                        st.info(evidence_text)
+                        
+                # Save assistant message and evidence to history
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": result.answer,
+                    "evidence": evidence_list
+                })
+                
+                # Force a UI refresh to update the telemetry sidebar
+                st.rerun()
                 
         # --- IF AGENTIC RAG (SYSTEM B) ---
         else:
-            # The "Glass Box" Thought Process
-            with st.status("Agentic Loop: Reasoning...", expanded=True) as status:
-                st.write("🔍 **Iteration 1:** Retrieving chunks for 'liability clause'...")
-                time.sleep(1)
-                st.write("🤔 **Reflection:** Found general liability limit. *Missing exceptions for gross negligence.*")
-                time.sleep(1)
-                st.write("✍️ **Query Reformulation:** Searching for 'gross negligence exceptions to liability'...")
-                time.sleep(1)
-                st.write("🔍 **Iteration 2:** Retrieved Section 4.2 (Exceptions).")
-                time.sleep(1)
-                st.write("✅ **Reflection:** Sufficient context gathered. Generating final answer.")
-                status.update(label="Reasoning Complete (2 Iterations)", state="complete", expanded=False)
-            
-            # Final Generated Answer
-            response = "Based on Section 4.1, the liability is generally limited to the contract value. **However**, according to the exception found in Section 4.2, this limitation does *not* apply in cases of gross negligence or willful misconduct."
-            st.write(response)
-
-        # 3. Save assistant message to state
-        st.session_state.messages.append({"role": "assistant", "content": response})
+            st.warning("Agentic RAG is not hooked up yet! Switch back to Traditional RAG.")
