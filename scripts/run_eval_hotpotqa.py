@@ -8,7 +8,7 @@ from src.eval.harness import run_eval_hotpotqa, select_summary_view, summarize, 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["traditional", "agentic"], required=True)
+    parser.add_argument("--mode", choices=["traditional", "agentic", "agentic_multi_action"], required=True)
     parser.add_argument("--limit", type=int, default=50)
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--output-jsonl", type=str, default="")
@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument("--warmup", action="store_true", help="Run one warm-up query before timing")
     parser.add_argument("--model", choices=["8b", "3b"], default="8b")
     parser.add_argument("--model-path", type=str, default="")
+    parser.add_argument("--top-k", type=int, default=5)
     args = parser.parse_args()
 
     cases = list(iter_hotpotqa_cases(offset=args.offset, limit=args.limit))
@@ -35,6 +36,7 @@ def main() -> None:
         model_path=model_path,
         run_id=args.run_id,
         batch_id=args.batch_id or f"off{args.offset}_lim{args.limit}",
+        top_k=args.top_k,
     )
 
     summary = select_summary_view(summarize(results), args.summary_view)

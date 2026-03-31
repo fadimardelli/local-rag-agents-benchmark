@@ -60,10 +60,14 @@ class TraditionalRAG:
         )
         return transformed.retrieval_query, transformed.latency_s
 
-    def run(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> RAGResult:
+    def run(self, question: str, top_k: int = RETRIEVAL_TOP_K, doc_path: Optional[str] = None) -> RAGResult:
         retrieval_started = perf_counter()
         retrieval_query, _ = self._prepare_retrieval_query(question)
-        retrieved = self.retriever.retrieve(retrieval_query, k=top_k)
+        retrieved = (
+            self.retriever.retrieve_in_document(retrieval_query, doc_path=doc_path, k=top_k)
+            if doc_path
+            else self.retriever.retrieve(retrieval_query, k=top_k)
+        )
         retrieval_latency_s = perf_counter() - retrieval_started
         context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
         user_prompt = build_user_prompt(context=context, question=question)
@@ -82,10 +86,14 @@ class TraditionalRAG:
             retrieval_query=retrieval_query,
         )
 
-    def run_label(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> RAGResult:
+    def run_label(self, question: str, top_k: int = RETRIEVAL_TOP_K, doc_path: Optional[str] = None) -> RAGResult:
         retrieval_started = perf_counter()
         retrieval_query, _ = self._prepare_retrieval_query(question)
-        retrieved = self.retriever.retrieve(retrieval_query, k=top_k)
+        retrieved = (
+            self.retriever.retrieve_in_document(retrieval_query, doc_path=doc_path, k=top_k)
+            if doc_path
+            else self.retriever.retrieve(retrieval_query, k=top_k)
+        )
         retrieval_latency_s = perf_counter() - retrieval_started
         context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
         user_prompt = build_user_prompt(context=context, question=question)

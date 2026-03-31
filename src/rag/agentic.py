@@ -251,7 +251,13 @@ class AgenticRAG:
     def _normalize_query(text: str) -> str:
         return " ".join(text.strip().lower().split())
 
-    def _run_impl(self, question: str, answer_system_prompt: str, top_k: int = RETRIEVAL_TOP_K) -> AgenticResult:
+    def _run_impl(
+        self,
+        question: str,
+        answer_system_prompt: str,
+        top_k: int = RETRIEVAL_TOP_K,
+        doc_path: Optional[str] = None,
+    ) -> AgenticResult:
         refined_queries: List[str] = []
         retrieved: List[RetrievedChunk] = []
         used: List[RetrievedChunk] = []
@@ -267,7 +273,11 @@ class AgenticRAG:
         for i in range(AGENTIC_MAX_ITERS):
             retrieval_started = perf_counter()
             retrieval_query, _ = self._prepare_retrieval_query(current_query)
-            retrieved = self.retriever.retrieve(retrieval_query, k=top_k)
+            retrieved = (
+                self.retriever.retrieve_in_document(retrieval_query, doc_path=doc_path, k=top_k)
+                if doc_path
+                else self.retriever.retrieve(retrieval_query, k=top_k)
+            )
             retrieval_latency_s += perf_counter() - retrieval_started
             context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
             current_signature = self._chunk_signature(retrieved)
@@ -444,11 +454,11 @@ class AgenticRAG:
             iteration_trace=iteration_trace,
         )
 
-    def run(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> AgenticResult:
-        return self._run_impl(question=question, answer_system_prompt=SYSTEM_PROMPT, top_k=top_k)
+    def run(self, question: str, top_k: int = RETRIEVAL_TOP_K, doc_path: Optional[str] = None) -> AgenticResult:
+        return self._run_impl(question=question, answer_system_prompt=SYSTEM_PROMPT, top_k=top_k, doc_path=doc_path)
 
-    def run_label(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> AgenticResult:
-        return self._run_impl(question=question, answer_system_prompt=LABEL_SYSTEM_PROMPT, top_k=top_k)
+    def run_label(self, question: str, top_k: int = RETRIEVAL_TOP_K, doc_path: Optional[str] = None) -> AgenticResult:
+        return self._run_impl(question=question, answer_system_prompt=LABEL_SYSTEM_PROMPT, top_k=top_k, doc_path=doc_path)
 
     def run_hotpot(self, question: str, top_k: int = RETRIEVAL_TOP_K) -> AgenticResult:
         return self._run_impl(question=question, answer_system_prompt=HOTPOT_SYSTEM_PROMPT, top_k=top_k)

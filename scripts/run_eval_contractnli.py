@@ -8,7 +8,7 @@ from src.config.defaults import LLAMA_GGUF_PATH_3B, LLAMA_GGUF_PATH_8B
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["traditional", "agentic"], required=True)
+    parser.add_argument("--mode", choices=["traditional", "agentic", "agentic_multi_action"], required=True)
     parser.add_argument("--limit", type=int, default=50)
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--output-jsonl", type=str, default="")

@@ -15,7 +15,7 @@ from src.eval.metrics import (
     supporting_doc_recall,
 )
 
-from src.rag import AgenticRAG, TraditionalRAG, Retriever
+from src.rag import AgenticRAG, MultiActionAgenticRAG, TraditionalRAG, Retriever
 from src.config.defaults import (
     AGENTIC_MAX_ITERS,
     CONTRACTNLI_ORIG_INDEX_PATH,
@@ -122,15 +122,19 @@ def run_eval(
     trace_agentic: bool = False,
     top_k: int = 5,
 ) -> List[EvalResult]:
-    if mode not in {"traditional", "agentic"}:
-        raise ValueError("mode must be 'traditional' or 'agentic'")
+    if mode not in {"traditional", "agentic", "agentic_multi_action"}:
+        raise ValueError("mode must be 'traditional', 'agentic', or 'agentic_multi_action'")
 
     cases_list = list(cases)
     results: List[EvalResult] = []
     rag = (
         TraditionalRAG(model_path=model_path)
         if mode == "traditional"
-        else AgenticRAG(model_path=model_path, trace_iterations=trace_agentic)
+        else (
+            AgenticRAG(model_path=model_path, trace_iterations=trace_agentic)
+            if mode == "agentic"
+            else MultiActionAgenticRAG(model_path=model_path, trace_iterations=trace_agentic)
+        )
     )
 
     if warmup and cases_list:
@@ -147,7 +151,7 @@ def run_eval(
             else:
                 out = rag.run(case.query, top_k=top_k)
                 iterations = out.iterations
-                retrieval_calls = out.iterations
+                retrieval_calls = getattr(out, "retrieval_steps", out.iterations)
         ended_at = datetime.now(timezone.utc)
 
         used = out.used
@@ -190,7 +194,7 @@ def run_eval(
                 generation_latency_s=out.generation_latency_s,
                 supporting_doc_recall=None,
                 answer_f1=None,
-                iteration_trace=out.iteration_trace if mode == "agentic" and trace_agentic else None,
+                iteration_trace=out.iteration_trace if mode in {"agentic", "agentic_multi_action"} and trace_agentic else None,
             )
         )
 
@@ -207,8 +211,8 @@ def run_eval_contractnli_original(
     batch_id: str = "",
     top_k: int = 5,
 ) -> List[EvalResult]:
-    if mode not in {"traditional", "agentic"}:
-        raise ValueError("mode must be 'traditional' or 'agentic'")
+    if mode not in {"traditional", "agentic", "agentic_multi_action"}:
+        raise ValueError("mode must be 'traditional', 'agentic', or 'agentic_multi_action'")
 
     cases_list = list(cases)
     retriever = Retriever(
@@ -218,28 +222,50 @@ def run_eval_contractnli_original(
     rag = (
         TraditionalRAG(retriever=retriever, model_path=model_path)
         if mode == "traditional"
-        else AgenticRAG(retriever=retriever, model_path=model_path)
+        else (
+            AgenticRAG(retriever=retriever, model_path=model_path)
+            if mode == "agentic"
+            else MultiActionAgenticRAG(retriever=retriever, model_path=model_path)
+        )
     )
 
     if warmup and cases_list:
         for case in cases_list[:2]:
+            doc_path = retriever.resolve_doc_path(case.file_name)
             if mode == "traditional":
-                _ = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
+                _ = (
+                    rag.run_label(case.query, top_k=top_k, doc_path=doc_path)
+                    if label_mode
+                    else rag.run(case.query, top_k=top_k, doc_path=doc_path)
+                )
             else:
-                _ = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
+                _ = (
+                    rag.run_label(case.query, top_k=top_k, doc_path=doc_path)
+                    if label_mode
+                    else rag.run(case.query, top_k=top_k, doc_path=doc_path)
+                )
 
     results: List[EvalResult] = []
     for idx, case in enumerate(cases_list):
+        doc_path = retriever.resolve_doc_path(case.file_name)
         started_at = datetime.now(timezone.utc)
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
-                out = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
+                out = (
+                    rag.run_label(case.query, top_k=top_k, doc_path=doc_path)
+                    if label_mode
+                    else rag.run(case.query, top_k=top_k, doc_path=doc_path)
+                )
                 iterations = 1
                 retrieval_calls = 1
             else:
-                out = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
+                out = (
+                    rag.run_label(case.query, top_k=top_k, doc_path=doc_path)
+                    if label_mode
+                    else rag.run(case.query, top_k=top_k, doc_path=doc_path)
+                )
                 iterations = out.iterations
-                retrieval_calls = out.iterations
+                retrieval_calls = getattr(out, "retrieval_steps", out.iterations)
         ended_at = datetime.now(timezone.utc)
 
         used = out.used
@@ -299,8 +325,8 @@ def run_eval_hotpotqa(
     batch_id: str = "",
     top_k: int = 5,
 ) -> List[EvalResult]:
-    if mode not in {"traditional", "agentic"}:
-        raise ValueError("mode must be 'traditional' or 'agentic'")
+    if mode not in {"traditional", "agentic", "agentic_multi_action"}:
+        raise ValueError("mode must be 'traditional', 'agentic', or 'agentic_multi_action'")
 
     cases_list = list(cases)
     retriever = Retriever(
@@ -310,7 +336,11 @@ def run_eval_hotpotqa(
     rag = (
         TraditionalRAG(retriever=retriever, model_path=model_path)
         if mode == "traditional"
-        else AgenticRAG(retriever=retriever, model_path=model_path)
+        else (
+            AgenticRAG(retriever=retriever, model_path=model_path)
+            if mode == "agentic"
+            else MultiActionAgenticRAG(retriever=retriever, model_path=model_path)
+        )
     )
 
     if warmup and cases_list:
@@ -328,7 +358,7 @@ def run_eval_hotpotqa(
             else:
                 out = rag.run_hotpot(case.query, top_k=top_k)
                 iterations = out.iterations
-                retrieval_calls = out.iterations
+                retrieval_calls = getattr(out, "retrieval_steps", out.iterations)
         ended_at = datetime.now(timezone.utc)
 
         used = out.used
