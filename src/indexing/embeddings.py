@@ -13,6 +13,6 @@ class EmbeddingModel:
         return self._model.encode(
             list(texts),
             batch_size=batch_size,
-            show_progress_bar=True,
+            show_progress_bar=False,
             normalize_embeddings=self.normalize,
         ).tolist()

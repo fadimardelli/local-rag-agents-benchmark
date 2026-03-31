@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.rag import TraditionalRAG
 from src.rag.llama_cpp import LlamaCppModel
+from src.rag.retriever import DATASET_CHOICES, Retriever, resolve_dataset_paths
 from src.utils.memory import PeakMemory
 from src.utils.timers import Timer
 from src.config.defaults import (
@@ -10,6 +11,8 @@ from src.config.defaults import (
     LLAMA_GGUF_PATH_8B,
     LLAMA_MAX_TOKENS,
     LLAMA_N_CTX,
+    LLAMA_N_GPU_LAYERS,
+    LLAMA_SEED,
     LLAMA_TEMPERATURE,
 )
 
@@ -17,6 +20,7 @@ from src.config.defaults import (
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("question", help="Question to ask the RAG system")
+    parser.add_argument("--dataset", choices=DATASET_CHOICES, default="legalbench_contractnli")
     parser.add_argument("--model", choices=["8b", "3b"], default="8b")
     parser.add_argument("--model-path", type=str, default="")
     parser.add_argument("--temperature", type=float, default=LLAMA_TEMPERATURE)
@@ -28,18 +32,23 @@ def main() -> None:
     else:
         model_path = LLAMA_GGUF_PATH_3B if args.model == "3b" else LLAMA_GGUF_PATH_8B
 
+    index_path, meta_path = resolve_dataset_paths(args.dataset)
     model = LlamaCppModel(
         model_path=model_path,
         n_ctx=LLAMA_N_CTX,
+        n_gpu_layers=LLAMA_N_GPU_LAYERS,
+        seed=LLAMA_SEED,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
     )
-    rag = TraditionalRAG(model=model)
+    retriever = Retriever(index_path=index_path, meta_path=meta_path)
+    rag = TraditionalRAG(model=model, retriever=retriever)
     with PeakMemory() as mem, Timer() as timer:
         result = rag.run(args.question)
 
     print("\nAnswer:\n")
     print(result.answer)
+    print(f"\nDataset: {args.dataset}")
     print(f"\nLatency (s): {timer.elapsed:.2f}")
     print(f"Peak RSS (MB): {mem.peak_rss_bytes / (1024 * 1024):.1f}")
     print(f"Avg CPU (%): {mem.avg_cpu_percent:.1f}")

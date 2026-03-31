@@ -9,6 +9,7 @@ from src.config.defaults import CONTRACTNLI_ORIG_TEST_PATH, HOTPOTQA_CASES_PATH
 
 @dataclass(frozen=True)
 class ContractNLITestCase:
+    case_id: str
     query: str
     gold_spans: List[Tuple[str, int, int]]
     gold_answer: Optional[str]
@@ -35,7 +36,7 @@ def iter_contractnli_cases(limit: Optional[int] = None) -> Iterable[ContractNLIT
     if limit is not None:
         cases = cases[:limit]
 
-    for case in cases:
+    for idx, case in enumerate(cases):
         query = case.get("query")
         snippets = case.get("snippets") or []
         if not query or not snippets:
@@ -50,6 +51,7 @@ def iter_contractnli_cases(limit: Optional[int] = None) -> Iterable[ContractNLIT
         if not gold_spans:
             continue
         yield ContractNLITestCase(
+            case_id=f"contractnli_test_{idx:04d}",
             query=query,
             gold_spans=gold_spans,
             gold_answer=case.get("label"),

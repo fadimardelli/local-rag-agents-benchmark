@@ -97,6 +97,7 @@ class EvalResult:
     error_flag: bool = False
     supporting_doc_recall: Optional[float] = None
     answer_f1: Optional[float] = None
+    iteration_trace: Optional[list] = None
 
 
 def _estimate_context_chars(chunks: List) -> int:
@@ -118,6 +119,8 @@ def run_eval(
     model_path: Optional[Path] = None,
     run_id: str = "",
     batch_id: str = "",
+    trace_agentic: bool = False,
+    top_k: int = 5,
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
@@ -127,22 +130,22 @@ def run_eval(
     rag = (
         TraditionalRAG(model_path=model_path)
         if mode == "traditional"
-        else AgenticRAG(model_path=model_path)
+        else AgenticRAG(model_path=model_path, trace_iterations=trace_agentic)
     )
 
     if warmup and cases_list:
         for case in cases_list[:2]:
-            _ = rag.run(case.query)
+            _ = rag.run(case.query, top_k=top_k)
 
     for idx, case in enumerate(cases_list):
         started_at = datetime.now(timezone.utc)
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
-                out = rag.run(case.query)
+                out = rag.run(case.query, top_k=top_k)
                 iterations = 1
                 retrieval_calls = 1
             else:
-                out = rag.run(case.query)
+                out = rag.run(case.query, top_k=top_k)
                 iterations = out.iterations
                 retrieval_calls = out.iterations
         ended_at = datetime.now(timezone.utc)
@@ -187,6 +190,7 @@ def run_eval(
                 generation_latency_s=out.generation_latency_s,
                 supporting_doc_recall=None,
                 answer_f1=None,
+                iteration_trace=out.iteration_trace if mode == "agentic" and trace_agentic else None,
             )
         )
 
@@ -201,6 +205,7 @@ def run_eval_contractnli_original(
     model_path: Optional[Path] = None,
     run_id: str = "",
     batch_id: str = "",
+    top_k: int = 5,
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
@@ -219,20 +224,20 @@ def run_eval_contractnli_original(
     if warmup and cases_list:
         for case in cases_list[:2]:
             if mode == "traditional":
-                _ = rag.run_label(case.query) if label_mode else rag.run(case.query)
+                _ = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
             else:
-                _ = rag.run_label(case.query) if label_mode else rag.run(case.query)
+                _ = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
 
     results: List[EvalResult] = []
     for idx, case in enumerate(cases_list):
         started_at = datetime.now(timezone.utc)
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
-                out = rag.run_label(case.query) if label_mode else rag.run(case.query)
+                out = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
                 iterations = 1
                 retrieval_calls = 1
             else:
-                out = rag.run_label(case.query) if label_mode else rag.run(case.query)
+                out = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
                 iterations = out.iterations
                 retrieval_calls = out.iterations
         ended_at = datetime.now(timezone.utc)
@@ -292,6 +297,7 @@ def run_eval_hotpotqa(
     model_path: Optional[Path] = None,
     run_id: str = "",
     batch_id: str = "",
+    top_k: int = 5,
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
@@ -309,18 +315,18 @@ def run_eval_hotpotqa(
 
     if warmup and cases_list:
         for case in cases_list[:2]:
-            _ = rag.run_hotpot(case.query)
+            _ = rag.run_hotpot(case.query, top_k=top_k)
 
     results: List[EvalResult] = []
     for idx, case in enumerate(cases_list):
         started_at = datetime.now(timezone.utc)
         with PeakMemory() as mem, Timer() as timer:
             if mode == "traditional":
-                out = rag.run_hotpot(case.query)
+                out = rag.run_hotpot(case.query, top_k=top_k)
                 iterations = 1
                 retrieval_calls = 1
             else:
-                out = rag.run_hotpot(case.query)
+                out = rag.run_hotpot(case.query, top_k=top_k)
                 iterations = out.iterations
                 retrieval_calls = out.iterations
         ended_at = datetime.now(timezone.utc)

@@ -20,6 +20,12 @@ def main() -> None:
     parser.add_argument("--warmup", action="store_true", help="Run one warm-up query before timing")
     parser.add_argument("--model", choices=["8b", "3b"], default="8b")
     parser.add_argument("--model-path", type=str, default="")
+    parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument(
+        "--trace-agentic",
+        action="store_true",
+        help="Include per-iteration agentic trace data in JSONL/CSV outputs",
+    )
     args = parser.parse_args()
 
     cases = list(iter_contractnli_cases_window(offset=args.offset, limit=args.limit))
@@ -36,6 +42,8 @@ def main() -> None:
         model_path=model_path,
         run_id=args.run_id,
         batch_id=batch_id,
+        trace_agentic=args.trace_agentic,
+        top_k=args.top_k,
     )
 
     summary = select_summary_view(summarize(results), args.summary_view)

@@ -11,6 +11,7 @@ class LlamaCppModel:
         n_ctx: int,
         n_threads: Optional[int] = None,
         n_gpu_layers: int = 0,
+        seed: int = 42,
         temperature: float = 0.2,
         max_tokens: int = 512,
     ):
@@ -23,18 +24,26 @@ class LlamaCppModel:
             n_ctx=n_ctx,
             n_threads=n_threads,
             n_gpu_layers=n_gpu_layers,
+            seed=seed,
             verbose=False,
         )
 
-    def generate(self, system_prompt: str, user_prompt: str) -> str:
+    def generate(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> str:
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
         output = self.model.create_chat_completion(
             messages=messages,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            temperature=self.temperature if temperature is None else temperature,
+            max_tokens=self.max_tokens if max_tokens is None else max_tokens,
         )
         return output["choices"][0]["message"]["content"].strip()
 
