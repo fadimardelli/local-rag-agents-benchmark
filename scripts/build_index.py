@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 from src.config.defaults import (
@@ -13,8 +14,12 @@ from src.data import chunk_document, iter_corpus_files
 from src.indexing import EmbeddingModel, build_faiss_index, save_faiss_index, save_metadata
 
 
-def build_contractnli_index() -> None:
-    embedder = EmbeddingModel(EMBEDDING_MODEL_NAME, normalize=EMBEDDING_NORMALIZE)
+def build_contractnli_index(device: str | None = None) -> None:
+    embedder = EmbeddingModel(
+        EMBEDDING_MODEL_NAME,
+        normalize=EMBEDDING_NORMALIZE,
+        device=device,
+    )
 
     all_chunks = []
     for doc_path in iter_corpus_files(CORPUS_DIR):
@@ -44,4 +49,7 @@ def build_contractnli_index() -> None:
 
 
 if __name__ == "__main__":
-    build_contractnli_index()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default=None)
+    args = parser.parse_args()
+    build_contractnli_index(device=args.device)

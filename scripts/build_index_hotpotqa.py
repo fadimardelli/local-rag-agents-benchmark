@@ -1,3 +1,4 @@
+import argparse
 import json
 from pathlib import Path
 from typing import Dict, List
@@ -25,7 +26,7 @@ def _read_jsonl(path: Path) -> List[Dict]:
     return rows
 
 
-def main() -> None:
+def main(device: str | None = None) -> None:
     docs = _read_jsonl(HOTPOTQA_CORPUS_PATH)
 
     metadata = []
@@ -44,7 +45,11 @@ def main() -> None:
                 }
             )
 
-    embedder = EmbeddingModel(EMBEDDING_MODEL_NAME, normalize=EMBEDDING_NORMALIZE)
+    embedder = EmbeddingModel(
+        EMBEDDING_MODEL_NAME,
+        normalize=EMBEDDING_NORMALIZE,
+        device=device,
+    )
     vectors = embedder.encode([m["text"] for m in metadata])
     index = build_faiss_index(vectors, normalize=EMBEDDING_NORMALIZE)
     save_faiss_index(index, HOTPOTQA_INDEX_PATH)
@@ -56,4 +61,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default=None)
+    args = parser.parse_args()
+    main(device=args.device)

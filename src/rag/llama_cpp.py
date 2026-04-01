@@ -28,6 +28,20 @@ class LlamaCppModel:
             verbose=False,
         )
 
+    def close(self) -> None:
+        model = getattr(self, "model", None)
+        if model is None:
+            return
+        close_fn = getattr(model, "close", None)
+        if callable(close_fn):
+            try:
+                close_fn()
+            except TypeError:
+                # Some llama_cpp builds surface destructor-time cleanup noise; do our
+                # best to close explicitly and then drop the reference.
+                pass
+        self.model = None
+
     def generate(
         self,
         system_prompt: str,

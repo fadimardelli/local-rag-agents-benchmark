@@ -1,3 +1,4 @@
+import argparse
 import json
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from src.data.chunking import chunk_text
 from src.indexing import EmbeddingModel, build_faiss_index, save_faiss_index, save_metadata
 
 
-def build_index_from_original(test_path: Path) -> None:
+def build_index_from_original(test_path: Path, device: str | None = None) -> None:
     if not test_path.exists():
         raise FileNotFoundError(f"Missing ContractNLI original split: {test_path}")
 
@@ -37,7 +38,11 @@ def build_index_from_original(test_path: Path) -> None:
                 }
             )
 
-    embedder = EmbeddingModel(EMBEDDING_MODEL_NAME, normalize=EMBEDDING_NORMALIZE)
+    embedder = EmbeddingModel(
+        EMBEDDING_MODEL_NAME,
+        normalize=EMBEDDING_NORMALIZE,
+        device=device,
+    )
     vectors = embedder.encode([c["text"] for c in all_chunks])
     index = build_faiss_index(vectors, normalize=EMBEDDING_NORMALIZE)
     save_faiss_index(index, CONTRACTNLI_ORIG_INDEX_PATH)
@@ -49,4 +54,7 @@ def build_index_from_original(test_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    build_index_from_original(CONTRACTNLI_ORIG_TEST_PATH)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default=None)
+    args = parser.parse_args()
+    build_index_from_original(CONTRACTNLI_ORIG_TEST_PATH, device=args.device)
