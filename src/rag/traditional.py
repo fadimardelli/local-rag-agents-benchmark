@@ -40,6 +40,7 @@ class TraditionalRAG:
         retriever: Optional[Retriever] = None,
         model: Optional[LlamaCppModel] = None,
         model_path: Optional[Path] = None,
+        query_transform_mode: Optional[str] = None,
     ):
         self.retriever = retriever or Retriever()
         self.model = model or LlamaCppModel(
@@ -50,7 +51,7 @@ class TraditionalRAG:
             temperature=LLAMA_TEMPERATURE,
             max_tokens=LLAMA_MAX_TOKENS,
         )
-        self.query_transform_mode = QUERY_TRANSFORM_MODE
+        self.query_transform_mode = query_transform_mode or QUERY_TRANSFORM_MODE
 
     def _prepare_retrieval_query(self, question: str) -> tuple[str, float]:
         transformed = build_retrieval_query(

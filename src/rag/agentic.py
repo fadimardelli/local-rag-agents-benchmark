@@ -7,6 +7,8 @@ from typing import List, Optional
 
 from src.config.defaults import (
     AGENTIC_MAX_ITERS,
+    AGENTIC_CORRECTIVE_RRF_K,
+    AGENTIC_CORRECTIVE_TOP_K,
     CONTEXT_CHAR_BUDGET,
     LLAMA_GGUF_PATH,
     LLAMA_MAX_TOKENS,
@@ -34,8 +36,17 @@ from src.rag.retriever import RetrievedChunk, Retriever
 
 
 CONTROLLER_DECISION_MAX_TOKENS = 48
-CONTROLLER_REWRITE_MAX_TOKENS = 48
+CONTROLLER_REWRITE_MAX_TOKENS = 128
 CONTROLLER_TEMPERATURE = 0.0
+
+
+@dataclass(frozen=True)
+class CorrectiveQueryPlan:
+    missing_fact: str
+    primary_query: str
+    backup_query: str
+    raw_output: str
+    latency_s: float
 
 
 @dataclass(frozen=True)
@@ -60,6 +71,7 @@ class AgenticRAG:
         model: Optional[LlamaCppModel] = None,
         model_path: Optional[Path] = None,
         trace_iterations: bool = False,
+        query_transform_mode: Optional[str] = None,
     ):
         self.retriever = retriever or Retriever()
         self.trace_iterations = trace_iterations
@@ -71,7 +83,101 @@ class AgenticRAG:
             temperature=LLAMA_TEMPERATURE,
             max_tokens=LLAMA_MAX_TOKENS,
         )
-        self.query_transform_mode = QUERY_TRANSFORM_MODE
+        self.query_transform_mode = query_transform_mode or QUERY_TRANSFORM_MODE
+
+    @staticmethod
+    def _is_source_specific_question(question: str) -> bool:
+        lowered = question.lower()
+        return ";" in question or "agreement" in lowered or "document" in lowered or "policy" in lowered
+
+    @staticmethod
+    def _dominant_doc_key(chunks: List[RetrievedChunk]) -> Optional[str]:
+        if not chunks:
+            return None
+        doc_scores: dict[str, tuple[float, int]] = {}
+        for chunk in chunks:
+            total_score, count = doc_scores.get(chunk.doc_path, (0.0, 0))
+            doc_scores[chunk.doc_path] = (total_score + float(chunk.score), count + 1)
+        ranked = sorted(doc_scores.items(), key=lambda item: (item[1][1], item[1][0]), reverse=True)
+        return ranked[0][0] if ranked else None
+
+    def _apply_source_focus(self, question: str, chunks: List[RetrievedChunk]) -> List[RetrievedChunk]:
+        if not self._is_source_specific_question(question):
+            return chunks
+        dominant_doc = self._dominant_doc_key(chunks)
+        if dominant_doc is None:
+            return chunks
+        focused = [chunk for chunk in chunks if chunk.doc_path == dominant_doc]
+        return focused or chunks
+
+    @staticmethod
+    def _fuse_ranked_lists(
+        primary: List[RetrievedChunk],
+        secondary: List[RetrievedChunk],
+        *,
+        rrf_k: int = AGENTIC_CORRECTIVE_RRF_K,
+    ) -> List[RetrievedChunk]:
+        fused_scores: dict[tuple[str, int, int], float] = {}
+        fused_chunks: dict[tuple[str, int, int], RetrievedChunk] = {}
+        for ranked in (primary, secondary):
+            for rank, chunk in enumerate(ranked, start=1):
+                key = (chunk.doc_path, chunk.start, chunk.end)
+                fused_chunks[key] = chunk
+                fused_scores[key] = fused_scores.get(key, 0.0) + 1.0 / (rrf_k + rank)
+        ranked_keys = sorted(fused_scores, key=lambda key: fused_scores[key], reverse=True)
+        return [
+            RetrievedChunk(
+                doc_path=fused_chunks[key].doc_path,
+                start=fused_chunks[key].start,
+                end=fused_chunks[key].end,
+                text=fused_chunks[key].text,
+                score=fused_scores[key],
+            )
+            for key in ranked_keys
+        ]
+
+    def _corrective_retrieve(
+        self,
+        *,
+        primary_query: str,
+        backup_query: str,
+        previous_retrieved: List[RetrievedChunk],
+        top_k: int,
+        question: str,
+    ) -> tuple[List[RetrievedChunk], str]:
+        corrective_k = max(top_k, AGENTIC_CORRECTIVE_TOP_K)
+        primary_retrieval_query, _ = self._prepare_retrieval_query(primary_query)
+        target_doc = self._dominant_doc_key(previous_retrieved)
+        if target_doc and self._is_source_specific_question(question):
+            corrective_retrieved = self.retriever.retrieve_in_docs(
+                primary_retrieval_query,
+                k=corrective_k,
+                doc_paths=[target_doc],
+            )
+            final_query = f"{primary_retrieval_query} @doc:{Path(target_doc).name}"
+            fused = self._fuse_ranked_lists(previous_retrieved, corrective_retrieved)
+            if backup_query != "NONE":
+                backup_retrieval_query, _ = self._prepare_retrieval_query(backup_query)
+                backup_retrieved = self.retriever.retrieve_in_docs(
+                    backup_retrieval_query,
+                    k=corrective_k,
+                    doc_paths=[target_doc],
+                )
+                fused = self._fuse_ranked_lists(fused, backup_retrieved)
+                final_query = (
+                    f"{primary_retrieval_query} || {backup_retrieval_query} @doc:{Path(target_doc).name}"
+                )
+            return fused, final_query
+
+        corrective_retrieved = self.retriever.retrieve(primary_retrieval_query, k=corrective_k)
+        fused = self._fuse_ranked_lists(previous_retrieved, corrective_retrieved)
+        final_query = primary_retrieval_query
+        if backup_query != "NONE":
+            backup_retrieval_query, _ = self._prepare_retrieval_query(backup_query)
+            backup_retrieved = self.retriever.retrieve(backup_retrieval_query, k=corrective_k)
+            fused = self._fuse_ranked_lists(fused, backup_retrieved)
+            final_query = f"{primary_retrieval_query} || {backup_retrieval_query}"
+        return self._apply_source_focus(question, fused), final_query
 
     def _prepare_retrieval_query(self, question: str) -> tuple[str, float]:
         transformed = build_retrieval_query(
@@ -108,6 +214,7 @@ class AgenticRAG:
         controller_confidence: Optional[int] = None,
         missing_aspect: Optional[str] = None,
         raw_controller_output: Optional[str] = None,
+        corrective_action: Optional[str] = None,
     ) -> dict:
         return {
             "iteration_index": iteration_index,
@@ -125,6 +232,7 @@ class AgenticRAG:
             "controller_confidence": controller_confidence,
             "missing_aspect": missing_aspect,
             "raw_controller_output": raw_controller_output,
+            "corrective_action": corrective_action,
         }
 
     @staticmethod
@@ -148,16 +256,65 @@ class AgenticRAG:
         first_word = cleaned.split()[0] if cleaned else ""
         return "STOP" if first_word == "STOP" else "RETRY"
 
-    def _parse_rewrite_output(self, text: str) -> str:
-        cleaned = text.strip()
-        if not cleaned:
+    @classmethod
+    def _normalize_query_candidate(cls, text: Optional[str]) -> str:
+        cleaned = cls._normalize_optional_text(text)
+        if cleaned == "NONE":
             return "NONE"
-        # Strip simple quoting if present.
         if (cleaned.startswith('"') and cleaned.endswith('"')) or (
             cleaned.startswith("'") and cleaned.endswith("'")
         ):
             cleaned = cleaned[1:-1].strip()
-        return self._normalize_optional_text(cleaned)
+        if any(token in cleaned for token in ("AND", " OR ", "(", ")", '"', "'")):
+            return "NONE"
+        return cls._normalize_optional_text(cleaned)
+
+    def _parse_rewrite_output(self, text: str, *, question: str) -> CorrectiveQueryPlan:
+        fallback = CorrectiveQueryPlan(
+            missing_fact="NONE",
+            primary_query="NONE",
+            backup_query="NONE",
+            raw_output=text,
+            latency_s=0.0,
+        )
+        cleaned = text.strip()
+        if not cleaned:
+            return fallback
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+            cleaned = re.sub(r"\s*```$", "", cleaned)
+            cleaned = cleaned.strip()
+        if not cleaned.startswith("{"):
+            match = re.search(r"\{.*?\}", cleaned, flags=re.DOTALL)
+            if match:
+                cleaned = match.group(0).strip()
+        try:
+            payload = json.loads(cleaned)
+        except json.JSONDecodeError:
+            payload = None
+        if not isinstance(payload, dict):
+            return fallback
+
+        missing_fact = self._normalize_optional_text(payload.get("missing_fact"))
+        primary_query = self._normalize_query_candidate(payload.get("primary_query"))
+        backup_query = self._normalize_query_candidate(payload.get("backup_query"))
+
+        original_norm = self._normalize_query(question)
+        if primary_query != "NONE" and self._normalize_query(primary_query) == original_norm:
+            primary_query = "NONE"
+        if backup_query != "NONE" and self._normalize_query(backup_query) == original_norm:
+            backup_query = "NONE"
+        if backup_query != "NONE" and primary_query != "NONE":
+            if self._normalize_query(backup_query) == self._normalize_query(primary_query):
+                backup_query = "NONE"
+
+        return CorrectiveQueryPlan(
+            missing_fact=missing_fact,
+            primary_query=primary_query,
+            backup_query=backup_query,
+            raw_output=text,
+            latency_s=0.0,
+        )
 
     @staticmethod
     def _entity_hints(question: str) -> str:
@@ -213,7 +370,7 @@ class AgenticRAG:
         decision = self._parse_decision_output(result)
         return decision, latency_s, result
 
-    def _rewrite_step(self, question: str, context: str) -> tuple[str, float, str]:
+    def _rewrite_step(self, question: str, context: str) -> CorrectiveQueryPlan:
         entity_hints = self._entity_hints(question)
         user_prompt = build_rewrite_prompt(
             question=question,
@@ -228,24 +385,14 @@ class AgenticRAG:
             max_tokens=CONTROLLER_REWRITE_MAX_TOKENS,
         )
         latency_s = perf_counter() - started
-        rewrite = self._parse_rewrite_output(result)
-
-        original_norm = self._normalize_query(question)
-        rewrite_norm = self._normalize_query(rewrite)
-        if rewrite == "NONE" or not rewrite_norm or rewrite_norm == original_norm:
-            return "NONE", latency_s, result
-
-        entity_hints = self._entity_hints(question)
-        if entity_hints != "NONE":
-            hint_tokens = [self._normalize_query(tok) for tok in re.split(r"[,\s]+", entity_hints) if tok.strip()]
-            # Require the rewrite to preserve at least one meaningful entity token when such hints exist.
-            if hint_tokens and not any(tok and tok in rewrite_norm for tok in hint_tokens):
-                return "NONE", latency_s, result
-
-        if any(token in rewrite for token in ("AND", " OR ", "(", ")", '"', "'")):
-            return "NONE", latency_s, result
-
-        return rewrite, latency_s, result
+        plan = self._parse_rewrite_output(result, question=question)
+        return CorrectiveQueryPlan(
+            missing_fact=plan.missing_fact,
+            primary_query=plan.primary_query,
+            backup_query=plan.backup_query,
+            raw_output=result,
+            latency_s=latency_s,
+        )
 
     @staticmethod
     def _normalize_query(text: str) -> str:
@@ -260,15 +407,24 @@ class AgenticRAG:
         generation_latency_s = 0.0
         iteration_trace: List[dict] = []
         previous_signature: Optional[tuple[tuple[str, int, int], ...]] = None
+        pending_retrieved: Optional[List[RetrievedChunk]] = None
+        pending_retrieval_query: Optional[str] = None
+        corrective_pass_used = False
         best_stop_retrieved: List[RetrievedChunk] = []
         best_stop_used: List[RetrievedChunk] = []
         best_stop_context = ""
 
         for i in range(AGENTIC_MAX_ITERS):
-            retrieval_started = perf_counter()
-            retrieval_query, _ = self._prepare_retrieval_query(current_query)
-            retrieved = self.retriever.retrieve(retrieval_query, k=top_k)
-            retrieval_latency_s += perf_counter() - retrieval_started
+            if pending_retrieved is not None and pending_retrieval_query is not None:
+                retrieved = pending_retrieved
+                retrieval_query = pending_retrieval_query
+                pending_retrieved = None
+                pending_retrieval_query = None
+            else:
+                retrieval_started = perf_counter()
+                retrieval_query, _ = self._prepare_retrieval_query(current_query)
+                retrieved = self.retriever.retrieve(retrieval_query, k=top_k)
+                retrieval_latency_s += perf_counter() - retrieval_started
             context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
             current_signature = self._chunk_signature(retrieved)
             controller_context = self._controller_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
@@ -304,9 +460,10 @@ class AgenticRAG:
                 break
 
             if i < AGENTIC_MAX_ITERS - 1:
-                refined, rewrite_latency_s, raw_rewrite_output = self._rewrite_step(question, controller_context)
-                generation_latency_s += rewrite_latency_s
-                if refined == "NONE":
+                if corrective_pass_used:
+                    best_stop_retrieved = list(retrieved)
+                    best_stop_used = list(used)
+                    best_stop_context = context
                     if self.trace_iterations:
                         iteration_trace.append(
                             self._make_iteration_entry(
@@ -318,17 +475,41 @@ class AgenticRAG:
                                 context=context,
                                 is_sufficient=False,
                                 assess_latency_s=controller_latency_s,
-                                refine_latency_s=rewrite_latency_s,
-                                refined_query=refined,
+                                stop_reason="max_corrective_passes",
+                                controller_decision=decision,
+                                controller_confidence=None,
+                                missing_aspect="NONE",
+                                raw_controller_output=raw_controller_output,
+                                corrective_action="none",
+                            )
+                        )
+                    break
+                plan = self._rewrite_step(question, controller_context)
+                generation_latency_s += plan.latency_s
+                if plan.primary_query == "NONE":
+                    if self.trace_iterations:
+                        iteration_trace.append(
+                            self._make_iteration_entry(
+                                iteration_index=i + 1,
+                                query=current_query,
+                                retrieval_query=retrieval_query,
+                                retrieved=retrieved,
+                                used=used,
+                                context=context,
+                                is_sufficient=False,
+                                assess_latency_s=controller_latency_s,
+                                refine_latency_s=plan.latency_s,
+                                refined_query=plan.primary_query,
                                 stop_reason="empty_refinement",
                                 controller_decision=decision,
                                 controller_confidence=None,
-                                missing_aspect="NONE",
-                                raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {raw_rewrite_output}",
+                                missing_aspect=plan.missing_fact,
+                                raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {plan.raw_output}",
+                                corrective_action="none",
                             )
                         )
                     break
-                if self._normalize_query(refined) == self._normalize_query(current_query):
+                if self._normalize_query(plan.primary_query) == self._normalize_query(current_query):
                     if self.trace_iterations:
                         iteration_trace.append(
                             self._make_iteration_entry(
@@ -340,17 +521,29 @@ class AgenticRAG:
                                 context=context,
                                 is_sufficient=False,
                                 assess_latency_s=controller_latency_s,
-                                refine_latency_s=rewrite_latency_s,
-                                refined_query=refined,
+                                refine_latency_s=plan.latency_s,
+                                refined_query=plan.primary_query,
                                 stop_reason="unchanged_refinement",
                                 controller_decision=decision,
                                 controller_confidence=None,
-                                missing_aspect="NONE",
-                                raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {raw_rewrite_output}",
+                                missing_aspect=plan.missing_fact,
+                                raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {plan.raw_output}",
+                                corrective_action="none",
                             )
                         )
                     break
-                if previous_signature is not None and current_signature == previous_signature:
+                corrective_started = perf_counter()
+                corrected_retrieved, corrective_retrieval_query = self._corrective_retrieve(
+                    primary_query=plan.primary_query,
+                    backup_query=plan.backup_query,
+                    previous_retrieved=retrieved,
+                    top_k=top_k,
+                    question=question,
+                )
+                retrieval_latency_s += perf_counter() - corrective_started
+                corrected_signature = self._chunk_signature(corrected_retrieved)
+
+                if previous_signature is not None and corrected_signature == previous_signature:
                     if self.trace_iterations:
                         iteration_trace.append(
                             self._make_iteration_entry(
@@ -362,13 +555,14 @@ class AgenticRAG:
                                 context=context,
                                 is_sufficient=False,
                                 assess_latency_s=controller_latency_s,
-                                refine_latency_s=rewrite_latency_s,
-                                refined_query=refined,
+                                refine_latency_s=plan.latency_s,
+                                refined_query=plan.primary_query,
                                 stop_reason="repeated_retrieval",
                                 controller_decision=decision,
                                 controller_confidence=None,
-                                missing_aspect="NONE",
-                                raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {raw_rewrite_output}",
+                                missing_aspect=plan.missing_fact,
+                                raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {plan.raw_output}",
+                                corrective_action="repeat_after_corrective_retrieval",
                             )
                         )
                     break
@@ -383,18 +577,22 @@ class AgenticRAG:
                             context=context,
                             is_sufficient=False,
                             assess_latency_s=controller_latency_s,
-                            refine_latency_s=rewrite_latency_s,
-                            refined_query=refined,
+                            refine_latency_s=plan.latency_s,
+                            refined_query=plan.primary_query,
                             stop_reason="continue",
                             controller_decision=decision,
                             controller_confidence=None,
-                            missing_aspect="NONE",
-                            raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {raw_rewrite_output}",
+                            missing_aspect=plan.missing_fact,
+                            raw_controller_output=f"DECISION>> {raw_controller_output}\nREWRITE>> {plan.raw_output}",
+                            corrective_action="rewrite_plus_corrective_retrieval",
                         )
                     )
-                refined_queries.append(refined)
-                current_query = refined
-                previous_signature = current_signature
+                refined_queries.append(plan.primary_query)
+                corrective_pass_used = True
+                current_query = plan.primary_query
+                previous_signature = corrected_signature
+                pending_retrieved = corrected_retrieved
+                pending_retrieval_query = corrective_retrieval_query
             elif self.trace_iterations:
                 iteration_trace.append(
                     self._make_iteration_entry(
@@ -411,6 +609,7 @@ class AgenticRAG:
                         controller_confidence=None,
                         missing_aspect="NONE",
                         raw_controller_output=raw_controller_output,
+                        corrective_action="none",
                     )
                 )
 

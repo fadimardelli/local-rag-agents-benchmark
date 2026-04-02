@@ -3,7 +3,12 @@ from typing import Iterable, List, Optional, Tuple
 import json
 from pathlib import Path
 
-from src.data import LegalBenchRAGData, load_legalbench_contractnli
+from src.data import (
+    LegalBenchRAGData,
+    load_legalbench_contractnli,
+    load_legalbench_mini,
+    load_legalbench_mini_balanced,
+)
 from src.config.defaults import CONTRACTNLI_ORIG_TEST_PATH, HOTPOTQA_CASES_PATH
 
 
@@ -30,8 +35,11 @@ class HotpotQACase:
     supporting_titles: List[str]
 
 
-def iter_contractnli_cases(limit: Optional[int] = None) -> Iterable[ContractNLITestCase]:
-    data: LegalBenchRAGData = load_legalbench_contractnli()
+def _iter_legalbench_cases(
+    data: LegalBenchRAGData,
+    limit: Optional[int] = None,
+    case_prefix: str = "legalbench_test",
+) -> Iterable[ContractNLITestCase]:
     cases = data.test_cases
     if limit is not None:
         cases = cases[:limit]
@@ -51,11 +59,26 @@ def iter_contractnli_cases(limit: Optional[int] = None) -> Iterable[ContractNLIT
         if not gold_spans:
             continue
         yield ContractNLITestCase(
-            case_id=f"contractnli_test_{idx:04d}",
+            case_id=f"{case_prefix}_{idx:04d}",
             query=query,
             gold_spans=gold_spans,
             gold_answer=case.get("label"),
         )
+
+
+def iter_contractnli_cases(limit: Optional[int] = None) -> Iterable[ContractNLITestCase]:
+    data: LegalBenchRAGData = load_legalbench_contractnli()
+    yield from _iter_legalbench_cases(data, limit=limit, case_prefix="contractnli_test")
+
+
+def iter_legalbench_mini_cases(limit: Optional[int] = None) -> Iterable[ContractNLITestCase]:
+    data: LegalBenchRAGData = load_legalbench_mini()
+    yield from _iter_legalbench_cases(data, limit=limit, case_prefix="legalbench_mini_test")
+
+
+def iter_legalbench_mini_balanced_cases(limit: Optional[int] = None) -> Iterable[ContractNLITestCase]:
+    data: LegalBenchRAGData = load_legalbench_mini_balanced()
+    yield from _iter_legalbench_cases(data, limit=limit, case_prefix="legalbench_mini_balanced_test")
 
 
 def iter_contractnli_cases_window(
@@ -67,6 +90,42 @@ def iter_contractnli_cases_window(
     skipped = 0
     emitted = 0
     for case in iter_contractnli_cases(limit=None):
+        if skipped < offset:
+            skipped += 1
+            continue
+        yield case
+        emitted += 1
+        if limit is not None and emitted >= limit:
+            return
+
+
+def iter_legalbench_mini_cases_window(
+    offset: int = 0,
+    limit: Optional[int] = None,
+) -> Iterable[ContractNLITestCase]:
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
+    skipped = 0
+    emitted = 0
+    for case in iter_legalbench_mini_cases(limit=None):
+        if skipped < offset:
+            skipped += 1
+            continue
+        yield case
+        emitted += 1
+        if limit is not None and emitted >= limit:
+            return
+
+
+def iter_legalbench_mini_balanced_cases_window(
+    offset: int = 0,
+    limit: Optional[int] = None,
+) -> Iterable[ContractNLITestCase]:
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
+    skipped = 0
+    emitted = 0
+    for case in iter_legalbench_mini_balanced_cases(limit=None):
         if skipped < offset:
             skipped += 1
             continue

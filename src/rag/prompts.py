@@ -28,8 +28,11 @@ HOTPOT_SYSTEM_PROMPT = (
 CONTROLLER_DECISION_SYSTEM_PROMPT = (
     "You are a retrieval evaluator for a local RAG system. "
     "Judge only whether the current retrieval is good enough to answer the question. "
-    "Be strict about retrieval quality and source consistency. "
+    "Be strict about retrieval quality, clause specificity, and source consistency, but do not request another search if the needed evidence is already present. "
     "If the question refers to a specific agreement, party, or document, treat wrong-source retrieval as insufficient. "
+    "If the chunks are from the right document and already contain the likely answer span, clause heading, date, defined term, obligation, exception, covenant, or location cue needed to answer, return STOP. "
+    "Do not ask for a retry just because a cleaner or more precise chunk might exist. "
+    "Use RETRY only when the current chunks are wrong-source, mixed-source in a harmful way, or clearly missing the specific fact, clause, condition, exception, covenant, term, or answer span needed. "
     "Return only STOP or RETRY."
 )
 
@@ -38,18 +41,27 @@ CONTROLLER_DECISION_TEMPLATE = (
     "{question}\n\n"
     "Retrieved Context:\n"
     "{context}\n\n"
-    "Decide whether the retrieved context is relevant enough to answer the question.\n"
-    "Return STOP only if the retrieval is both relevant and source-consistent.\n"
+    "Decide whether the retrieved context is sufficient to answer the question.\n"
+    "Return STOP if the retrieval is relevant, source-consistent, and already contains enough evidence to answer.\n"
+    "If the likely answer span or clause is already present, return STOP even if another search might find a cleaner snippet.\n"
     "Otherwise return RETRY.\n"
     "Return only one word.\n"
 )
 
 CONTROLLER_REWRITE_SYSTEM_PROMPT = (
-    "You rewrite questions into short retrieval queries for a local RAG system. "
-    "Preserve the user's intent. Preserve any agreement names, party names, dates, and distinctive entities from the original question. "
-    "Never broaden the scope to generic document categories. "
-    "Do not use Boolean syntax, parentheses, OR, AND, quotes, or explanations. "
-    "Return only the rewritten query text."
+    "You are a legal retrieval strategist for a local RAG system. "
+    "Your job is to improve retrieval when the current chunks are insufficient. "
+    "First identify the single most important fact missing from the retrieved context that prevents answering the question. "
+    "Then write one targeted retrieval query for that missing fact. "
+    "If useful, you may provide one backup query, but only if it targets the same missing fact from a different legal phrasing. "
+    "Preserve important entities from the original question, including agreement names, party names, jurisdictions, dates, and distinctive terms. "
+    "Preserve polarity and negation. "
+    "Use compact retrieval-friendly legal wording such as likely clause terms, obligations, exceptions, conditions, and scope terms. "
+    "Prefer short keyword-style search queries, not full questions or sentences. "
+    "Keep each query under 18 words. "
+    "Do not invent facts, section numbers, or entities not present in the question. "
+    "Do not broaden to generic legal topics. "
+    "Return JSON only."
 )
 
 CONTROLLER_REWRITE_TEMPLATE = (
@@ -59,9 +71,14 @@ CONTROLLER_REWRITE_TEMPLATE = (
     "{entity_hints}\n\n"
     "Retrieved Context:\n"
     "{context}\n\n"
-    "Write one short retrieval query that stays faithful to the original question, keeps the important entities, "
-    "and targets what the current retrieval appears to be missing.\n"
-    "Return only the rewritten query text.\n"
+    "Identify the most important missing fact needed to answer the question.\n"
+    "Write compact keyword-style retrieval queries, not natural-language questions.\n\n"
+    "Return JSON with this schema:\n"
+    "{{\n"
+    '  "missing_fact": "<short phrase>",\n'
+    '  "primary_query": "<short keyword query>",\n'
+    '  "backup_query": "<optional short keyword query or NONE>"\n'
+    "}}\n"
 )
 
 QUERY_TRANSFORM_SYSTEM_PROMPT = (

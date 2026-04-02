@@ -121,16 +121,28 @@ def run_eval(
     batch_id: str = "",
     trace_agentic: bool = False,
     top_k: int = 5,
+    retriever_kwargs: Optional[dict] = None,
+    query_transform_mode: Optional[str] = None,
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
 
     cases_list = list(cases)
+    retriever = Retriever(**(retriever_kwargs or {}))
     results: List[EvalResult] = []
     rag = (
-        TraditionalRAG(model_path=model_path)
+        TraditionalRAG(
+            retriever=retriever,
+            model_path=model_path,
+            query_transform_mode=query_transform_mode,
+        )
         if mode == "traditional"
-        else AgenticRAG(model_path=model_path, trace_iterations=trace_agentic)
+        else AgenticRAG(
+            retriever=retriever,
+            model_path=model_path,
+            trace_iterations=trace_agentic,
+            query_transform_mode=query_transform_mode,
+        )
     )
 
     if warmup and cases_list:

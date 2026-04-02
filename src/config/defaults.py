@@ -7,6 +7,8 @@ CORPUS_DIR = DATA_ROOT / "corpus"
 ANNOTATIONS_DIR = DATA_ROOT / "annotations"
 
 LEGALBENCH_CONTRACTNLI_PATH = BENCHMARKS_DIR / "contractnli.json"
+LEGALBENCH_MINI_PATH = BENCHMARKS_DIR / "legalbenchrag_mini.json"
+LEGALBENCH_MINI_BALANCED_PATH = BENCHMARKS_DIR / "legalbenchrag_mini_balanced.json"
 CONTRACTNLI_TASK_SPLIT_PATH = ANNOTATIONS_DIR / "contractnli_task_split.csv"
 
 # Chunking defaults. Chunks are now assembled on text boundaries
@@ -56,6 +58,8 @@ QUERY_TRANSFORM_MAX_TOKENS = 96
 
 # Agentic loop defaults
 AGENTIC_MAX_ITERS = 3
+AGENTIC_CORRECTIVE_TOP_K = 20
+AGENTIC_CORRECTIVE_RRF_K = 60
 
 # LLM defaults (llama.cpp)
 LLAMA_GGUF_PATH_8B = Path("/Users/fadimardelli/models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
