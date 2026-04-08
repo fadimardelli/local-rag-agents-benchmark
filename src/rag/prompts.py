@@ -25,6 +25,36 @@ HOTPOT_SYSTEM_PROMPT = (
     "Do not add explanation, prefix, or extra words."
 )
 
+ANSWER_SELECTION_SYSTEM_PROMPT = (
+    "You are a careful answer selector for open-domain question answering. "
+    "You will receive a question, candidate answer A with its supporting context, and candidate answer B with its supporting context. "
+    "Choose the candidate that is more directly and specifically supported by its context. "
+    "Prefer exact supported answers over vague, partial, or hallucinated ones. "
+    "If one candidate is unknown and the other is directly supported, choose the supported one. "
+    "If neither candidate is directly supported, choose unknown. "
+    "Return JSON only."
+)
+
+ANSWER_SELECTION_TEMPLATE = (
+    "Question:\n"
+    "{question}\n\n"
+    "Candidate A Answer:\n"
+    "{answer_a}\n\n"
+    "Candidate A Context:\n"
+    "{context_a}\n\n"
+    "Candidate B Answer:\n"
+    "{answer_b}\n\n"
+    "Candidate B Context:\n"
+    "{context_b}\n\n"
+    "Return JSON with this schema:\n"
+    "{{\n"
+    '  "choice": "<A or B or UNKNOWN>",\n'
+    '  "reason": "<short phrase>"\n'
+    "}}\n"
+)
+
+
+
 CONTROLLER_DECISION_SYSTEM_PROMPT = (
     "You are a retrieval evaluator for a local RAG system. "
     "Judge only whether the current retrieval is good enough to answer the question. "
@@ -45,6 +75,26 @@ CONTROLLER_DECISION_TEMPLATE = (
     "Return STOP if the retrieval is relevant, source-consistent, and already contains enough evidence to answer.\n"
     "If the likely answer span or clause is already present, return STOP even if another search might find a cleaner snippet.\n"
     "Otherwise return RETRY.\n"
+    "Return only one word.\n"
+)
+
+CONTROLLER_GLOBAL_DECISION_SYSTEM_PROMPT = (
+    "You are a retrieval evaluator for a local RAG system handling open-domain or multi-document questions. "
+    "Judge only whether the current retrieval already contains enough evidence to answer the question. "
+    "Be strict about evidence completeness, but do not request another search if the current chunks already provide the needed entities, bridge facts, or comparisons. "
+    "Return STOP when the retrieved context already supports the answer with enough connected evidence, even if a cleaner second search might exist. "
+    "Return RETRY only when the retrieval looks partial, one-sided, or likely misses a needed bridge fact, comparison target, or second source. "
+    "Return only STOP or RETRY."
+)
+
+CONTROLLER_GLOBAL_DECISION_TEMPLATE = (
+    "Question:\n"
+    "{question}\n\n"
+    "Retrieved Context:\n"
+    "{context}\n\n"
+    "Decide whether the retrieved context already contains enough connected evidence to answer the question.\n"
+    "Return STOP if the current context already includes the needed entities, bridge facts, comparisons, or supporting sources.\n"
+    "Return RETRY only if the evidence still looks partial, one-sided, or missing a likely second source or bridge fact.\n"
     "Return only one word.\n"
 )
 
@@ -81,6 +131,70 @@ CONTROLLER_REWRITE_TEMPLATE = (
     "}}\n"
 )
 
+CONTROLLER_BRIDGE_REWRITE_SYSTEM_PROMPT = (
+    "You are a retrieval strategist for a multi-document local RAG system. "
+    "The first retrieval found only part of what is needed. "
+    "Identify the single most important missing bridge fact, second entity, relation, or comparison target needed to answer the question. "
+    "Then write one targeted global retrieval query for that missing piece of evidence. "
+    "If useful, provide one backup query that targets the same missing bridge from a different phrasing. "
+    "Preserve important entities, polarity, and comparison structure from the original question. "
+    "Prefer compact keyword-style search queries, not full sentences. "
+    "Keep each query under 18 words. "
+    "Do not invent facts or unsupported entities. "
+    "Return JSON only."
+)
+
+CONTROLLER_BRIDGE_REWRITE_TEMPLATE = (
+    "Original Question:\n"
+    "{question}\n\n"
+    "Entity Hints To Preserve:\n"
+    "{entity_hints}\n\n"
+    "Retrieved Context:\n"
+    "{context}\n\n"
+    "Identify the most important missing bridge fact or second evidence target still needed.\n"
+    "Write compact keyword-style retrieval queries for a second global search.\n\n"
+    "Return JSON with this schema:\n"
+    "{{\n"
+    '  "missing_fact": "<short phrase>",\n'
+    '  "primary_query": "<short keyword query>",\n'
+    '  "backup_query": "<optional short keyword query or NONE>"\n'
+    "}}\n"
+)
+
+CONTROLLER_BRIDGE_PLAN_SYSTEM_PROMPT = (
+    "You are a retrieval strategist for a local RAG system handling open-domain or multi-document questions. "
+    "Your job is to decide whether a second global retrieval is actually needed. "
+    "If the current retrieval already contains enough connected evidence to answer, do not request another search. "
+    "If another retrieval is needed, step back from the original wording and identify the more general missing relation, role, location, office, time period, comparison attribute, or bridge concept that would connect the evidence. "
+    "Write one primary step-back query for that missing abstract relation or bridge concept. "
+    "If useful, write one secondary query for a concrete entity-focused follow-up that complements the first query rather than paraphrasing it. "
+    "Preserve important entities, polarity, and comparison structure from the original question. "
+    "Prefer compact keyword-style retrieval queries, not full sentences. "
+    "Keep each query under 18 words. "
+    "Do not invent unsupported facts or entities. "
+    "Return JSON only."
+)
+
+CONTROLLER_BRIDGE_PLAN_TEMPLATE = (
+    "Original Question:\n"
+    "{question}\n\n"
+    "Entity Hints To Preserve:\n"
+    "{entity_hints}\n\n"
+    "Retrieved Context:\n"
+    "{context}\n\n"
+    "Decide whether another global retrieval is needed.\n"
+    "If not needed, set need_retry to NO and set both queries to NONE.\n"
+    "If needed, set need_retry to YES and write a step-back query for the missing relation or bridge concept.\n"
+    "Use backup_query only when it adds a complementary concrete follow-up, not just a rephrasing.\n\n"
+    "Return JSON with this schema:\n"
+    "{{\n"
+    '  "need_retry": "<YES or NO>",\n'
+    '  "missing_fact": "<short phrase describing the missing evidence>",\n'
+    '  "primary_query": "<short keyword step-back query or NONE>",\n'
+    '  "backup_query": "<optional short complementary follow-up query or NONE>"\n'
+    "}}\n"
+)
+
 QUERY_TRANSFORM_SYSTEM_PROMPT = (
     "You convert a user question into retrieval-oriented contract language for dense retrieval. "
     "Write a short hypothetical contract clause or answer passage that would likely appear in a relevant document. "
@@ -109,6 +223,10 @@ def build_controller_prompt(context: str, question: str) -> str:
     return CONTROLLER_DECISION_TEMPLATE.format(context=context, question=question)
 
 
+def build_global_controller_prompt(context: str, question: str) -> str:
+    return CONTROLLER_GLOBAL_DECISION_TEMPLATE.format(context=context, question=question)
+
+
 def build_rewrite_prompt(question: str, entity_hints: str, context: str) -> str:
     return CONTROLLER_REWRITE_TEMPLATE.format(
         question=question,
@@ -117,5 +235,38 @@ def build_rewrite_prompt(question: str, entity_hints: str, context: str) -> str:
     )
 
 
+def build_bridge_rewrite_prompt(question: str, entity_hints: str, context: str) -> str:
+    return CONTROLLER_BRIDGE_REWRITE_TEMPLATE.format(
+        question=question,
+        entity_hints=entity_hints,
+        context=context,
+    )
+
+
+def build_bridge_plan_prompt(question: str, entity_hints: str, context: str) -> str:
+    return CONTROLLER_BRIDGE_PLAN_TEMPLATE.format(
+        question=question,
+        entity_hints=entity_hints,
+        context=context,
+    )
+
+
 def build_query_transform_prompt(question: str) -> str:
     return QUERY_TRANSFORM_TEMPLATE.format(question=question)
+
+
+def build_answer_selection_prompt(
+    *,
+    question: str,
+    answer_a: str,
+    context_a: str,
+    answer_b: str,
+    context_b: str,
+) -> str:
+    return ANSWER_SELECTION_TEMPLATE.format(
+        question=question,
+        answer_a=answer_a,
+        context_a=context_a,
+        answer_b=answer_b,
+        context_b=context_b,
+    )

@@ -98,6 +98,10 @@ class EvalResult:
     supporting_doc_recall: Optional[float] = None
     answer_f1: Optional[float] = None
     iteration_trace: Optional[list] = None
+    answer_selection_source: Optional[str] = None
+    answer_selection_reason: Optional[str] = None
+    first_pass_answer: Optional[str] = None
+    corrected_pass_answer: Optional[str] = None
 
 
 def _estimate_context_chars(chunks: List) -> int:
@@ -310,6 +314,7 @@ def run_eval_hotpotqa(
     run_id: str = "",
     batch_id: str = "",
     top_k: int = 5,
+    trace_agentic: bool = False,
 ) -> List[EvalResult]:
     if mode not in {"traditional", "agentic"}:
         raise ValueError("mode must be 'traditional' or 'agentic'")
@@ -322,7 +327,7 @@ def run_eval_hotpotqa(
     rag = (
         TraditionalRAG(retriever=retriever, model_path=model_path)
         if mode == "traditional"
-        else AgenticRAG(retriever=retriever, model_path=model_path)
+        else AgenticRAG(retriever=retriever, model_path=model_path, trace_iterations=trace_agentic)
     )
 
     if warmup and cases_list:
@@ -379,6 +384,11 @@ def run_eval_hotpotqa(
                 generation_latency_s=out.generation_latency_s,
                 supporting_doc_recall=supp_recall,
                 answer_f1=f1,
+                iteration_trace=out.iteration_trace if mode == "agentic" and trace_agentic else None,
+                answer_selection_source=getattr(out, "answer_selection_source", None),
+                answer_selection_reason=getattr(out, "answer_selection_reason", None),
+                first_pass_answer=getattr(out, "first_pass_answer", None),
+                corrected_pass_answer=getattr(out, "corrected_pass_answer", None),
             )
         )
 
@@ -453,6 +463,17 @@ def summarize(results: List[EvalResult]) -> Dict[str, float]:
         summary["supporting_doc_recall_mean"] = float(sum(supporting_vals) / len(supporting_vals))
     if f1_vals:
         summary["answer_f1_mean"] = float(sum(f1_vals) / len(f1_vals))
+    selection_sources = [r.answer_selection_source for r in results if r.answer_selection_source]
+    if selection_sources:
+        summary["first_pass_selected_rate"] = float(
+            sum(1.0 for s in selection_sources if s == "first_pass") / len(selection_sources)
+        )
+        summary["corrected_pass_selected_rate"] = float(
+            sum(1.0 for s in selection_sources if s == "corrected_pass") / len(selection_sources)
+        )
+        summary["single_pass_selected_rate"] = float(
+            sum(1.0 for s in selection_sources if s == "single_pass") / len(selection_sources)
+        )
     return summary
 
 

@@ -20,6 +20,8 @@ from src.rag.prompts import HOTPOT_SYSTEM_PROMPT, LABEL_SYSTEM_PROMPT, SYSTEM_PR
 from src.rag.query_transform import build_retrieval_query
 from src.rag.retriever import RetrievedChunk, Retriever
 
+HOTPOT_ANSWER_MAX_TOKENS = 32
+
 
 @dataclass(frozen=True)
 class RAGResult:
@@ -113,7 +115,11 @@ class TraditionalRAG:
         context, used = build_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
         user_prompt = build_user_prompt(context=context, question=question)
         generation_started = perf_counter()
-        answer = self.model.generate(HOTPOT_SYSTEM_PROMPT, user_prompt)
+        answer = self.model.generate(
+            HOTPOT_SYSTEM_PROMPT,
+            user_prompt,
+            max_tokens=HOTPOT_ANSWER_MAX_TOKENS,
+        )
         generation_latency_s = perf_counter() - generation_started
         return RAGResult(
             answer=answer,

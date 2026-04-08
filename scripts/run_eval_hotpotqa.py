@@ -18,6 +18,7 @@ def main() -> None:
     parser.add_argument("--run-id", type=str, default="")
     parser.add_argument("--batch-id", type=str, default="")
     parser.add_argument("--warmup", action="store_true", help="Run one warm-up query before timing")
+    parser.add_argument("--trace-agentic", action="store_true", help="Include per-iteration agentic traces in outputs")
     parser.add_argument("--model", choices=["8b", "3b"], default="8b")
     parser.add_argument("--model-path", type=str, default="")
     args = parser.parse_args()
@@ -35,6 +36,7 @@ def main() -> None:
         model_path=model_path,
         run_id=args.run_id,
         batch_id=args.batch_id or f"off{args.offset}_lim{args.limit}",
+        trace_agentic=args.trace_agentic,
     )
 
     summary = select_summary_view(summarize(results), args.summary_view)
