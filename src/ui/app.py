@@ -2,115 +2,123 @@ import streamlit as st
 import time
 from pathlib import Path
 
-# --- Import Fadi's Backend Code ---
+# --- Import Backend Components ---
 from src.rag.traditional import TraditionalRAG
+from src.rag.agentic import AgenticRAG
 from src.config.defaults import LLAMA_GGUF_PATH_8B
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="LexLocal | Thesis UI",
+    page_title="LexLocal | Thesis Benchmarking",
     page_icon="⚖️",
     layout="wide"
 )
 
-# --- 1. THE HARDWARE TRAP FIX (Load Models Once) ---
-@st.cache_resource(show_spinner="Loading Llama-3 and FAISS into Memory... Please wait.")
-def initialize_backend():
-    """Initializes the heavy models only once."""
-    # We use the 8B model default path. 
-    # Fadi's TraditionalRAG automatically handles the FAISS index and Llama setup.
-    rag_engine = TraditionalRAG(model_path=LLAMA_GGUF_PATH_8B)
-    return rag_engine
+# --- 1. SHARED RESOURCE INITIALIZATION ---
+@st.cache_resource(show_spinner="Initializing Llama-3 and FAISS Index...")
+def initialize_systems():
+    """
+    Loads models once. AgenticRAG reuses the model and retriever 
+    from TraditionalRAG to save memory.
+    """
+    # 1. Initialize System A
+    sys_a = TraditionalRAG(model_path=LLAMA_GGUF_PATH_8B)
+    
+    # 2. Initialize System B (reusing internal objects)
+    sys_b = AgenticRAG(
+        retriever=sys_a.retriever,
+        model=sys_a.model
+    )
+    return sys_a, sys_b
 
-# Call the initialization
-rag = initialize_backend()
+# Get the engines
+system_a, system_b = initialize_systems()
 
-# --- Initialize Chat History & Telemetry in Session State ---
+# --- 2. SESSION STATE ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "last_latency" not in st.session_state:
     st.session_state.last_latency = 0.0
+if "last_iterations" not in st.session_state:
+    st.session_state.last_iterations = 1
 
-# --- Sidebar: Controls & Telemetry ---
+# --- 3. SIDEBAR TELEMETRY ---
 with st.sidebar:
     st.title("LexLocal")
-    st.subheader("Resource-Aware Legal Assistant")
+    st.subheader("Hardware-Aware Research")
     st.divider()
     
-    st.markdown("**1. Workflow Strategy**")
     workflow = st.radio(
-        "Select Pipeline:",
+        "Select Research Pipeline:",
         ["⚡ Traditional RAG (System A)", "🧠 Agentic Loop (System B)"],
-        help="System A is a linear single-shot search. System B uses an iterative reflection loop."
+        help="System A: Single-shot retrieval. System B: Iterative query refinement."
     )
     
     st.divider()
-    
-    st.markdown("**3. Hardware Telemetry**")
-    st.caption("Live Local Metrics (Llama-3-8B)")
-    
-    # We update the latency dynamically based on the last run
-    st.metric(label="Last Query Latency", value=f"{st.session_state.last_latency:.2f} s")
-    st.metric(label="VRAM Config", value="Q4_K_M (Quantized)")
+    st.markdown("**Performance Metrics**")
+    st.metric(label="Inference Latency", value=f"{st.session_state.last_latency:.2f} s")
+    st.metric(label="Reasoning Steps", value=st.session_state.last_iterations)
+    st.caption(f"Backend: Llama-3-8B (Q4_K_M)")
 
-# --- Main Chat Interface ---
-st.header("Legal Document Q&A")
+# --- 4. CHAT INTERFACE ---
+st.header("Local Legal RAG Benchmark")
 
-# Display historical messages
+# Display chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        # If the message has retrieved evidence attached, display it in an expander
         if "evidence" in msg and msg["evidence"]:
             with st.expander("🔍 View Retrieved Evidence"):
                 for chunk in msg["evidence"]:
                     st.info(chunk)
 
-# User Input
-if prompt := st.chat_input("Ask a question about the contract..."):
-    # Add user message to state and display it
+# User Input Logic
+if prompt := st.chat_input("Ask a legal question..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Assistant Response Logic
     with st.chat_message("assistant"):
+        start_time = time.time()
         
-        # --- IF TRADITIONAL RAG (SYSTEM A) ---
         if "Traditional" in workflow:
-            with st.spinner("System A: Retrieving and generating..."):
-                
-                # Start the timer!
-                start_time = time.time()
-                
-                # RUN FADI'S CODE
-                result = rag.run(prompt)
-                
-                # Stop the timer!
-                end_time = time.time()
-                st.session_state.last_latency = end_time - start_time
-                
-                # Display the final answer
-                st.write(result.answer)
-                
-                # Format the evidence chunks for the UI
-                evidence_list = []
-                with st.expander("🔍 View Retrieved Evidence", expanded=False):
-                    for i, chunk in enumerate(result.used, 1):
-                        evidence_text = f"**Source:** {chunk.doc_path} (Chars: {chunk.start}-{chunk.end}) | **Relevance Score:** {chunk.score:.4f}\n\n> {chunk.text.strip()}"
-                        evidence_list.append(evidence_text)
-                        st.info(evidence_text)
-                        
-                # Save assistant message and evidence to history
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": result.answer,
-                    "evidence": evidence_list
-                })
-                
-                # Force a UI refresh to update the telemetry sidebar
-                st.rerun()
-                
-        # --- IF AGENTIC RAG (SYSTEM B) ---
+            with st.spinner("System A: Single-pass retrieval..."):
+                result = system_a.run(prompt)
+                answer = result.answer
+                used_chunks = result.used
+                st.session_state.last_iterations = 1
         else:
-            st.warning("Agentic RAG is not hooked up yet! Switch back to Traditional RAG.")
+            with st.spinner("System B: Iterative refinement loop..."):
+                result = system_b.run(prompt)
+                answer = result.answer
+                used_chunks = result.used
+                st.session_state.last_iterations = result.iterations
+                if result.refined_queries:
+                    st.caption(f"Refined Search Queries: {', '.join(result.refined_queries)}")
+
+        # Telemetry calculations
+        st.session_state.last_latency = time.time() - start_time
+        
+        # Display Answer
+        st.write(answer)
+        
+        # Display Evidence
+        evidence_list = []
+        with st.expander("🔍 View Retrieved Evidence"):
+            for chunk in used_chunks:
+                # Handle cases where score might be missing or different naming
+                score = getattr(chunk, 'score', 0.0)
+                path = getattr(chunk, 'doc_path', 'Unknown Source')
+                
+                evidence_text = f"**Source:** {path} | **Relevance:** {score:.4f}\n\n> {chunk.text.strip()}"
+                evidence_list.append(evidence_text)
+                st.info(evidence_text)
+
+        # Save to history
+        st.session_state.messages.append({
+            "role": "assistant", 
+            "content": answer,
+            "evidence": evidence_list
+        })
+        
+        st.rerun()

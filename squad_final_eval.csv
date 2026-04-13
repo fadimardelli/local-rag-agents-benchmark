@@ -1,0 +1,211 @@
+mode,type,query,answer,latency_s,cpu_avg,iterations,hallucinated
+traditional,Answerable,When did Beyonce start becoming popular?,Beyoncé rose to fame in the late 1990s as the lead singer of R&B girl-group Destiny's Child.,53.61,55.15,1,False
+traditional,Answerable,What areas did Beyonce compete in when she was growing up?,"When she was growing up, Beyoncé performed in various singing and dancing competitions.",38.33,48.05,1,False
+traditional,Answerable,When did Beyonce leave Destiny's Child and become a solo singer?,"I don't know. The text only mentions that Destiny's Child disbanded in June 2005, but it doesn't explicitly state that Beyoncé left the group at that time to become a solo singer. It mentions that she released her debut album, Dangerously in Love (2003), which established her as a solo artist worldwide, but it doesn't provide a specific date for when she left Destiny's Child.",59.9,44.6,1,False
+traditional,Answerable,In what city and state did Beyonce  grow up? ,"Houston, Texas.",43.09,49.65,1,False
+traditional,Answerable,In which decade did Beyonce become famous?,The late 1990s.,43.61,49.4,1,False
+traditional,Answerable,In what R&B group was she the lead singer?,Destiny's Child.,42.51,49.45,1,False
+traditional,Answerable,What album made her a worldwide known artist?,Dangerously in Love (2003),42.88,99.1,1,False
+traditional,Answerable,Who managed the Destiny's Child group?,I don't know.,30.73,49.35,1,False
+traditional,Answerable,When did Beyoncé rise to fame?,The late 1990s as lead singer of R&B girl-group Destiny's Child.,47.23,49.05,1,False
+traditional,Answerable,What role did Beyoncé have in Destiny's Child?,Beyoncé was the lead singer of Destiny's Child.,47.74,49.8,1,False
+traditional,Answerable,What was the first album Beyoncé released as a solo artist?,Dangerously in Love (2003).,46.09,49.25,1,False
+traditional,Answerable,When did Beyoncé release Dangerously in Love?,2003.,42.02,49.65,1,False
+traditional,Answerable,How many Grammy awards did Beyoncé win for her first solo album?,"I don't know. 
+
+The text mentions that Beyoncé's debut album, Dangerously in Love (2003), earned five Grammy Awards, but it does not specify how many of those awards were for her first solo album.",50.85,45.6,1,False
+traditional,Answerable,What was Beyoncé's role in Destiny's Child?,Beyoncé was the lead singer of Destiny's Child.,40.32,48.6,1,False
+traditional,Answerable,What was the name of Beyoncé's first solo album?,Dangerously in Love (2003).,43.64,49.1,1,False
+traditional,Answerable,"After her second solo album, what other entertainment venture did Beyonce explore?","After her second solo album, B'Day (2006), Beyoncé also ventured into acting.",44.29,47.9,1,False
+traditional,Answerable,Which artist did Beyonce marry?,Rapper Jay Z.,46.57,49.5,1,False
+traditional,Answerable,"To set the record for Grammys, how many did Beyonce win?",She won 20 Grammy Awards.,42.91,49.25,1,False
+traditional,Answerable,For what movie did Beyonce receive  her first Golden Globe nomination?,Dreamgirls (2006),29.9,49.05,1,False
+traditional,Answerable,When did Beyonce take a hiatus in her career and take control of her management?,2010.,32.64,49.55,1,False
+traditional,Answerable,Which album was darker in tone from her previous work?,"Her critically acclaimed fifth studio album, Beyoncé (2013), was distinguished from previous releases by its experimental production and exploration of darker themes.",43.14,47.0,1,False
+traditional,Answerable,"After what movie portraying Etta James, did Beyonce create Sasha Fierce?","After the movie portraying Etta James, ""Cadillac Records"" (2008), Beyoncé created her alter-ego Sasha Fierce, which influenced her third album, ""I Am... Sasha Fierce"" (2008).",38.39,80.85,1,False
+traditional,Answerable,When did Destiny's Child end their group act?,June 2005.,33.84,49.3,1,False
+traditional,Answerable,What was the name of Beyoncé's second solo album?,B'Day (2006),43.05,49.25,1,False
+traditional,Answerable,"What was Beyoncé's first acting job, in 2006?","I don't know. The text mentions that Beyoncé ""also ventured into acting, with a Golden Globe-nominated performance in Dreamgirls (2006)"", but it does not specify that this was her first acting job.",51.86,46.0,1,False
+traditional,Answerable,Who is Beyoncé married to?,Beyoncé is married to rapper Jay Z.,42.03,48.9,1,False
+traditional,Answerable,What is the name of Beyoncé's alter-ego?,Sasha Fierce.,43.12,49.55,1,False
+traditional,Answerable,"In her music, what are some recurring elements in them?","Based on the provided context, some recurring elements in Beyoncé's music are:
+
+1. Themes of love, relationships, and monogamy
+2. Female sexuality and empowerment
+3. Exploration of darker themes (as seen in her 2013 album ""Beyoncé"")",47.92,69.85,1,False
+traditional,Answerable,Time magazine named her one of the most 100 what people of the century?,Time listed her among the 100 most influential people in the world in 2013 and 2014.,29.75,46.55,1,False
+traditional,Answerable,Which magazine declared her the most dominant woman musician?,Forbes magazine listed her as the most powerful female musician of 2015.,40.53,47.45,1,False
+traditional,Answerable,In which decade did the Recording Industry Association of America recognize Beyonce as the The Top Certified Artist?,The 2000s decade.,3.61,37.55,1,False
+traditional,Answerable,What magazine rated Beyonce as the most powerful female musician in 2015?,Forbes magazine.,2.52,39.7,1,False
+traditional,Answerable,How did Beyonce describe herself as a feminist?,"A self-described ""modern-day feminist"".",25.99,48.05,1,False
+traditional,Answerable,In which years did Time rate Beyonce in the 100 most influential people in the world?,"According to the provided context, Time listed Beyoncé among the 100 most influential people in the world in 2013 and 2014.",48.14,46.45,1,False
+traditional,Answerable,How many records has Beyonce sold in her 19 year career?,"As a solo artist, Beyoncé has sold over 118 million records. Additionally, with Destiny's Child, she has sold a further 60 million records.",51.18,97.0,1,False
+traditional,Answerable,How many records did Beyoncé sell as part of Destiny's Child?,60 million records.,25.18,48.95,1,False
+traditional,Answerable,"After leaving Destiny's Child, how many records did Beyoncé release under her own name?","I don't know. The text mentions that Beyoncé released her second solo album, B'Day (2006), but it does not provide information about the number of records she released under her own name after leaving Destiny's Child.",14.9,29.45,1,False
+traditional,Answerable,How many Grammy awards has Beyoncé won?,20 Grammy Awards.,24.63,48.95,1,False
+traditional,Answerable,What magazine named Beyoncé as the most powerful female musician for 2015?,Forbes magazine listed Beyoncé as the most powerful female musician of 2015.,6.13,32.5,1,False
+traditional,Answerable,Beyonce's younger sibling also sang with her in what band?,Destiny's Child.,53.02,49.45,1,False
+traditional,Answerable,Where did Beyonce get her name from?,"Beyoncé's name is a tribute to her mother's maiden name, Beyincé.",49.21,47.6,1,False
+traditional,Answerable,What race was Beyonce's father?,"Beyoncé's father, Mathew Knowles, is African-American.",30.7,47.65,1,False
+traditional,Answerable,Beyonce's childhood home believed in what religion?,Beyoncé was raised in a Methodist household.,49.8,48.75,1,False
+traditional,Answerable,Beyonce's father worked as a sales manager for what company?,Xerox.,42.04,49.55,1,False
+traditional,Answerable,Beyonce's mother worked in what industry?,A hairdresser and salon owner.,53.34,49.1,1,False
+traditional,Answerable,What younger sister of Beyonce also appeared in Destiny's Child?,Solange is Beyoncé's younger sister and also a singer and a former member of Destiny's Child.,53.29,47.75,1,False
+traditional,Answerable,Beyonce is a descendent of what Arcadian leader?,Acadian leader Joseph Broussard.,42.16,48.6,1,False
+traditional,Answerable,What company did Beyoncé's father work for when she was a child?,A Xerox sales manager.,32.81,48.85,1,False
+traditional,Answerable,What did Beyoncé's mother own when Beyoncé was a child?,A hair salon.,2.43,39.35,1,False
+traditional,Answerable,What is the name of Beyoncé's younger sister?,Solange.,58.47,49.7,1,False
+traditional,Unanswerable,What category of game is Legend of Zelda: Australia Twilight?,"I don't know. The provided context only mentions ""The Legend of Zelda: Twilight Princess"" and does not contain any information about ""Legend of Zelda: Australia Twilight.""",48.75,46.55,1,False
+traditional,Unanswerable,What consoles can be used to play Australia Twilight?,"I don't know. The text only mentions that the Wii version was released in Australia in December 2006, but it does not specify the consoles that can be used to play the game in Australia.",48.43,44.5,1,False
+traditional,Unanswerable,When was Australia Twilight launched in North America?,"I don't know. The provided context only mentions that the Wii version was released in North America in November 2006, but it doesn't mention the launch date of the Wii version in Australia.",45.63,44.45,1,False
+traditional,Unanswerable,When could GameCube owners purchase Australian Princess?,"I don't know. The text does not mention ""Australian Princess"" or its release date. However, it does mention the release of The Legend of Zelda: Twilight Princess in December 2006 for the GameCube worldwide.",54.02,44.75,1,False
+traditional,Unanswerable,What year was the Legend of Zelda: Australian Princess originally planned for release?,"I don't know. The text does not mention ""The Legend of Zelda: Australian Princess."" It mentions the original planned release year for ""The Legend of Zelda: Twilight Princess"" as November 2005.",52.77,45.55,1,False
+traditional,Unanswerable,What land does Ocarina serve to protect?,"I don't know. The context mentions that the game ""The Legend of Zelda: Twilight Princess"" takes place hundreds of years after Ocarina of Time, but it does not specify what land Ocarina serves to protect.",61.2,46.15,1,False
+traditional,Unanswerable,What character helped Link in Ocarina Princess?,"I don't know. The text mentions that the game takes place hundreds of years after Ocarina of Time, but it does not mention any character that helped Link in Ocarina of Time.",44.05,44.9,1,False
+traditional,Unanswerable,Who is the protagonist of Midna of Time?,"I don't know. The context mentions that the story focuses on series protagonist Link, but it does not mention a character named ""Midna of Time."" It does mention a character named Midna, who is a mysterious creature that assists Link in the game.",43.25,43.15,1,False
+traditional,Unanswerable,From what alternate dimension does this dimension take place from?,"The Twilight Realm, a corrupted parallel dimension, is from an alternate timeline from The Wind Waker.",33.45,46.6,1,True
+traditional,Unanswerable,When does the Waker take place?,"I don't know. The context mentions that the game takes place hundreds of years after Ocarina of Time and Majora's Mask, and in an alternate timeline from The Wind Waker, but it doesn't specify when The Wind Waker takes place.",43.45,44.75,1,False
+traditional,Unanswerable,What accolade did Radar Princess receive after its release?,"I don't know. There is no mention of ""Radar Princess"" in the provided context. However, it is mentioned that ""Twilight Princess"" received several Game of the Year awards and was considered the greatest entry in the Zelda series by many critics.",71.75,46.35,1,False
+traditional,Unanswerable,Under which brand was Radar Princess for the Nintendo Wii published?,"I don't know. The text does not mention ""Radar Princess"" but rather ""Twilight Princess"" which was published under the Nintendo brand for the GameCube and Wii home video game consoles.",52.63,45.6,1,False
+traditional,Unanswerable,When is the HD version of Radar Princess slated for launch?,"I don't know. The text mentions the HD version of ""Twilight Princess"", not ""Radar Princess"".",42.76,46.45,1,False
+traditional,Unanswerable,At the time of release what episode of Legend of Radar series was considered the greatest story? ,I don't know. There is no mention of the Legend of Radar series in the provided context. The context only mentions The Legend of Zelda series.,39.56,45.65,1,False
+traditional,Unanswerable,How many Game of the Year awards did Radar Princess receive?,"I don't know. The text does not mention a character or game called ""Radar Princess"". It mentions ""The Legend of Zelda: Twilight Princess"", but does not mention any awards for it.",59.29,45.95,1,False
+traditional,Unanswerable,What are the three main activities in The Legend of Zelda: Clawshot Princess?,"I don't know. The text refers to the game as ""The Legend of Zelda: Twilight Princess,"" not ""The Legend of Zelda: Clawshot Princess.""",43.1,45.75,1,False
+traditional,Unanswerable,Clawshot Princess uses the control setup first employed in which previous game?,"I don't know. The text does not mention ""Clawshot Princess."" It mentions the Clawshot, a secondary weapon in the game, but it does not mention a character called ""Clawshot Princess.""",37.35,43.0,1,False
+traditional,Unanswerable,What is Clawshot's main weapon?,"I don't know. The context only mentions that the Clawshot is similar to the Hookshot and is a secondary weapon, but it doesn't specify what its main weapon is.",34.22,43.7,1,False
+traditional,Unanswerable,What secondary weapon in Clawshot Princess is analogous to a weapon featured in previous games?,"I don't know. The text does not mention ""Clawshot Princess."" It mentions ""The Clawshot"" in the context of The Legend of Zelda series, which is similar to the Hookshot introduced earlier in the series.",32.74,40.85,1,False
+traditional,Unanswerable,What genre of games is Clawshot Princess?,"I don't know. The text mentions ""Clawshot"" but not ""Clawshot Princess.""",45.98,47.2,1,False
+traditional,Unanswerable,Many different types of interaction can be controlled by how many rocks?,I don't know.,35.63,49.15,1,False
+traditional,Unanswerable,Where can players see what action will be performed in different rocks?,"The on-screen display shows what action, if any, the button will trigger, determined by the situation.",43.03,47.45,1,True
+traditional,Unanswerable,"If Link is not moving, where will he put the enemy he's carrying?",I don't know. The text doesn't mention what happens when Link is not moving and is carrying an enemy.,48.03,96.95,1,False
+traditional,Unanswerable,What mechanic allows two buttons to serve many functions?,"I don't know. The provided context only mentions the context-sensitive button mechanic, which allows one button to serve a variety of functions.",42.32,46.3,1,False
+traditional,Unanswerable,What shows what action the rock will trigger?,"The on-screen display shows what action, if any, the button will trigger, determined by the situation.",37.07,47.15,1,True
+traditional,Unanswerable,Where is the speaker located on the Midna console?,"I don't know. The context does not mention the ""Midna console."" It mentions the Wii Remote, which has a built-in speaker, but it does not mention a ""Midna console.""",46.54,44.6,1,False
+traditional,Unanswerable,What sound do users hear when uncovering weapons in the game?,"The series' trademark ""chime"" when discovering secrets.",36.51,47.9,1,True
+traditional,Unanswerable,What part of the Midna is employed to use weapons?,"I don't know. The context does not mention Midna being employed to use weapons. It mentions that Midna gives advice to Link and laughs, but it does not mention Midna using weapons.",40.79,43.9,1,False
+traditional,Unanswerable,"Aside from the sword, what is another weapon that Midna can use?","I don't know. The text does not mention Midna using any other weapons aside from her laugh, which is emitted by the Wii Remote's speaker when she gives advice to Link.",44.51,44.7,1,False
+traditional,Unanswerable,How many weapons can be equipped by Midna if playing Twilight Princess on a GameCube?,"I don't know. The text does not mention Midna's ability to equip weapons. It mentions that in the GameCube version, only two of Link's secondary weapons can be equipped at a time.",45.32,44.35,1,False
+traditional,Unanswerable,How many dungeon instances are provided in Epona Princess?,"I don't know. The provided context is about The Legend of Zelda: Twilight Princess, not Epona Princess.",38.21,45.95,1,False
+traditional,Unanswerable,What does Epona fight in dungeons?,"I don't know. The context does not mention Epona fighting in dungeons. It does mention that Link navigates dungeons and fights a boss at the end, but it does not mention Epona's role in these battles.",38.31,81.3,1,False
+traditional,Unanswerable,What provides a bridge between the different items?,I don't know.,35.79,49.1,1,False
+traditional,Unanswerable,What is the name of Link's enemy?,I don't know. The provided context does not mention the name of Link's enemy.,37.63,88.69999999999999,1,False
+traditional,Unanswerable,What must Epona solve throughout the game?,"I don't know. The context does not mention Epona solving anything. It mentions that riding Epona is faster than Link moving as a wolf, but it does not mention any puzzles or challenges that Epona must solve.",38.58,42.6,1,False
+traditional,Unanswerable,What form does Epona take in the Twilight Realm?,I don't know. The provided context does not mention Epona's form in the Twilight Realm.,37.79,46.45,1,False
+traditional,Unanswerable,What is Epona's main form of offense in wolf form?,I don't know. The text does not mention Epona's main form of offense in wolf form.,37.77,46.3,1,False
+traditional,Unanswerable,Hostile Eponas are also known as what?,"I don't know. The provided context does not mention the term ""Hostile Eponas.""",38.16,46.7,1,False
+traditional,Unanswerable,Who provides helpful information to Poes?,I don't know. The text does not mention who provides helpful information to Poes.,34.49,46.85,1,False
+traditional,Unanswerable,Link's Edna form is faster than what other form?,"I don't know. There is no mention of a form called ""Link's Edna form"" in the provided context. However, it does mention that riding Epona is faster than Link as a wolf.",47.1,44.15,1,False
+traditional,Unanswerable,What is a game whose enemies have more rudimentary programming than those in Twilight Enemies?,"I don't know. The context only mentions that the enemies in Twilight Princess have more advanced AI than those in The Wind Waker, but it does not provide information about a specific game with enemies that have more rudimentary programming.",42.87,43.7,1,False
+traditional,Unanswerable,What does do previous games do to defeated companions?,I don't know.,33.55,49.05,1,False
+traditional,Unanswerable,What feature of the enemies in Twilight Enemies is more advanced?,"The feature of the enemies in Twilight Princess that is more advanced is their ability to react to defeated companions and to arrows or slingshot pellets that pass by, and can detect Link from a greater distance than was possible in previous games.",51.19,44.25,1,True
+traditional,Unanswerable,Who can enemies detect from a greater distance than in Twilight Enemies?,"I don't know. The context only mentions that enemies in Twilight Princess can detect Link from a greater distance than was possible in previous games, but it doesn't specify who or what those previous games were.",44.99,43.95,1,False
+traditional,Unanswerable,Who reacts to artificial intelligence that passes by?,Enemies in Twilight Princess.,35.14,74.05,1,True
+traditional,Unanswerable,Through what can Link's verbalizations be discerned?,Link's verbalizations can be discerned through his facial expressions and nods.,41.31,47.6,1,True
+traditional,Unanswerable,Which person has the most nods in the game?,"I don't know. The context only mentions that Link's emotions and responses are largely indicated visually by nods and facial expressions, but it does not provide information about the number of nods.",43.2,44.75,1,False
+traditional,Unanswerable,Who provided the basis for Zelda's voice?,"I don't know. The text only mentions that the voice acting for Midna was produced by scrambling the phonemes of English phrases sampled by Japanese voice actress Akiko Kōmoto, but it does not mention who provided the basis for Zelda's voice.",45.74,42.45,1,False
+traditional,Unanswerable,What country does Zelda come from?,I don't know. The provided context does not mention the country of origin for Zelda.,39.38,97.15,1,False
+traditional,Unanswerable,What does Zelda say when attacking?,I don't know. The provided context does not mention Zelda saying anything when attacking.,38.03,47.15,1,False
+agentic,Answerable,When did Beyonce start becoming popular?,She rose to fame in the late 1990s as lead singer of R&B girl-group Destiny's Child.,370.28,58.25,3,False
+agentic,Answerable,What areas did Beyonce compete in when she was growing up?,"When Beyoncé was growing up, she performed in various singing and dancing competitions.",107.41,48.85,1,False
+agentic,Answerable,When did Beyonce leave Destiny's Child and become a solo singer?,"In June 2005, Destiny's Child disbanded, and Beyoncé released her second solo album, B'Day (2006), which contained hits ""Déjà Vu"", ""Irreplaceable"", and ""Beautiful Liar"".",240.24,45.95,2,False
+agentic,Answerable,In what city and state did Beyonce  grow up? ,"Houston, Texas.",87.42,49.7,1,False
+agentic,Answerable,In which decade did Beyonce become famous?,The late 1990s.,269.99,49.25,3,False
+agentic,Answerable,In what R&B group was she the lead singer?,Destiny's Child.,87.28,49.6,1,False
+agentic,Answerable,What album made her a worldwide known artist?,"I don't know. The text does not specify which album made her a worldwide known artist. However, it does mention that her debut album, Dangerously in Love (2003), established her as a solo artist worldwide and earned five Grammy Awards.",273.54,48.55,3,False
+agentic,Answerable,Who managed the Destiny's Child group?,"Her father, Mathew Knowles.",147.72,49.0,2,False
+agentic,Answerable,When did Beyoncé rise to fame?,The late 1990s as lead singer of R&B girl-group Destiny's Child.,187.12,47.9,2,False
+agentic,Answerable,What role did Beyoncé have in Destiny's Child?,Beyoncé was the lead singer of Destiny's Child.,88.27,49.2,1,False
+agentic,Answerable,What was the first album Beyoncé released as a solo artist?,Dangerously in Love (2003).,87.82,49.4,1,False
+agentic,Answerable,When did Beyoncé release Dangerously in Love?,2003,86.36,49.7,1,False
+agentic,Answerable,How many Grammy awards did Beyoncé win for her first solo album?,"I don't know. The context does not mention how many Grammy awards Beyoncé won for her first solo album, Dangerously in Love. However, it does mention that the album earned five Grammy Awards.",281.75,47.9,3,False
+agentic,Answerable,What was Beyoncé's role in Destiny's Child?,Lead singer.,81.17,49.65,1,False
+agentic,Answerable,What was the name of Beyoncé's first solo album?,Dangerously in Love (2003).,267.88,49.45,3,False
+agentic,Answerable,"After her second solo album, what other entertainment venture did Beyonce explore?","After her second solo album, Beyoncé also ventured into acting.",84.44,49.1,1,False
+agentic,Answerable,Which artist did Beyonce marry?,Rapper Jay Z.,88.09,49.6,1,False
+agentic,Answerable,"To set the record for Grammys, how many did Beyonce win?",20 Grammy Awards.,87.13,49.6,1,False
+agentic,Answerable,For what movie did Beyonce receive  her first Golden Globe nomination?,Dreamgirls (2006),82.16,49.45,1,False
+agentic,Answerable,When did Beyonce take a hiatus in her career and take control of her management?,2010.,87.35,83.05000000000001,1,False
+agentic,Answerable,Which album was darker in tone from her previous work?,"Her critically acclaimed fifth studio album, Beyoncé (2013), was distinguished from previous releases by its experimental production and exploration of darker themes.",84.03,48.25,1,False
+agentic,Answerable,"After what movie portraying Etta James, did Beyonce create Sasha Fierce?","After the movie portraying Etta James, ""Cadillac Records"" (2008), Beyoncé created her alter-ego Sasha Fierce, which influenced her third album, ""I Am... Sasha Fierce"" (2008).",91.76,47.45,1,False
+agentic,Answerable,When did Destiny's Child end their group act?,June 2005,69.75,49.5,1,False
+agentic,Answerable,What was the name of Beyoncé's second solo album?,B'Day (2006),87.68,49.45,1,False
+agentic,Answerable,"What was Beyoncé's first acting job, in 2006?",Dreamgirls.,88.3,49.7,1,False
+agentic,Answerable,Who is Beyoncé married to?,Beyoncé is married to rapper Jay Z.,86.36,49.3,1,False
+agentic,Answerable,What is the name of Beyoncé's alter-ego?,Sasha Fierce.,87.92,49.65,1,False
+agentic,Answerable,"In her music, what are some recurring elements in them?","Based on the provided context, some recurring elements in Beyoncé's music are:
+
+1. Themes of love, relationships, and monogamy
+2. Female sexuality and empowerment
+3. Exploration of darker themes (as seen in her critically acclaimed album ""Beyoncé"" in 2013)",88.36,46.75,1,False
+agentic,Answerable,Time magazine named her one of the most 100 what people of the century?,"I don't know. The context mentions Time listing Beyoncé among the 100 most influential people in the world in 2013 and 2014, but it does not mention the century.",221.99,48.55,3,False
+agentic,Answerable,Which magazine declared her the most dominant woman musician?,Forbes magazine listed her as the most powerful female musician of 2015.,89.19,49.0,1,False
+agentic,Answerable,In which decade did the Recording Industry Association of America recognize Beyonce as the The Top Certified Artist?,The 2000s decade.,90.08,49.6,1,False
+agentic,Answerable,What magazine rated Beyonce as the most powerful female musician in 2015?,Forbes magazine.,88.23,49.65,1,False
+agentic,Answerable,How did Beyonce describe herself as a feminist?,"A self-described ""modern-day feminist"".",87.91,49.45,1,False
+agentic,Answerable,In which years did Time rate Beyonce in the 100 most influential people in the world?,2013 and 2014.,88.21,49.5,1,False
+agentic,Answerable,How many records has Beyonce sold in her 19 year career?,"Beyoncé has sold over 118 million records as a solo artist, and a further 60 million with Destiny's Child, making her one of the best-selling music artists of all time.",94.42,47.9,1,False
+agentic,Answerable,How many records did Beyoncé sell as part of Destiny's Child?,60 million records.,87.38,49.7,1,False
+agentic,Answerable,"After leaving Destiny's Child, how many records did Beyoncé release under her own name?","I don't know. The text does not provide information about the number of records Beyoncé released under her own name after leaving Destiny's Child. However, it does mention that she released her second solo album, B'Day (2006), which contained hits ""Déjà Vu"", ""Irreplaceable"", and ""Beautiful Liar"".",101.48,46.75,1,False
+agentic,Answerable,How many Grammy awards has Beyoncé won?,Beyoncé has won 20 Grammy Awards.,88.2,49.3,1,False
+agentic,Answerable,What magazine named Beyoncé as the most powerful female musician for 2015?,Forbes magazine listed Beyoncé as the most powerful female musician of 2015.,91.41,49.1,1,False
+agentic,Answerable,Beyonce's younger sibling also sang with her in what band?,Destiny's Child.,93.85,49.5,1,False
+agentic,Answerable,Where did Beyonce get her name from?,"Beyoncé's name is a tribute to her mother's maiden name, Beyincé.",109.78,48.7,1,False
+agentic,Answerable,What race was Beyonce's father?,African-American.,217.86,49.5,2,False
+agentic,Answerable,Beyonce's childhood home believed in what religion?,Beyoncé was raised in a Methodist household.,115.43,49.3,1,False
+agentic,Answerable,Beyonce's father worked as a sales manager for what company?,Xerox.,102.45,49.6,1,False
+agentic,Answerable,Beyonce's mother worked in what industry?,A hairdresser and salon owner.,105.61,49.3,1,False
+agentic,Answerable,What younger sister of Beyonce also appeared in Destiny's Child?,Solange is Beyoncé's younger sister and also a singer and a former member of Destiny's Child.,105.0,48.5,1,False
+agentic,Answerable,Beyonce is a descendent of what Arcadian leader?,Acadian leader Joseph Broussard.,100.72,49.2,1,False
+agentic,Answerable,What company did Beyoncé's father work for when she was a child?,A Xerox sales manager.,105.97,49.45,1,False
+agentic,Answerable,What did Beyoncé's mother own when Beyoncé was a child?,A hair salon.,104.38,49.55,1,False
+agentic,Answerable,What is the name of Beyoncé's younger sister?,Solange.,103.47,49.6,1,False
+agentic,Unanswerable,What category of game is Legend of Zelda: Australia Twilight?,"I don't know. The text does not mention ""Legend of Zelda: Australia Twilight"" but rather ""The Legend of Zelda: Twilight Princess"".",230.95,46.15,3,False
+agentic,Unanswerable,What consoles can be used to play Australia Twilight?,"I don't know. The context only mentions that the Wii version was released in Australia in December 2006, but it doesn't specify which consoles can be used to play the game in Australia.",253.78,55.65,3,False
+agentic,Unanswerable,When was Australia Twilight launched in North America?,"I don't know. The provided context only mentions that the Wii version was released in North America in November 2006, but it doesn't mention the launch date of the Wii version in Australia.",294.38,47.6,3,False
+agentic,Unanswerable,When could GameCube owners purchase Australian Princess?,"I don't know. The text does not mention ""Australian Princess."" It mentions the release of The Legend of Zelda: Twilight Princess in Australia, but not a specific title called ""Australian Princess.""",260.14,48.5,3,False
+agentic,Unanswerable,What year was the Legend of Zelda: Australian Princess originally planned for release?,"I don't know. The text does not mention ""The Legend of Zelda: Australian Princess."" It mentions that the game ""The Legend of Zelda: Twilight Princess"" was originally planned for release on the GameCube in November 2005.",238.73,47.85,3,False
+agentic,Unanswerable,What land does Ocarina serve to protect?,"I don't know. The context mentions that the story takes place hundreds of years after Ocarina of Time, but it doesn't specify what land Ocarina of Time serves to protect.",240.41,48.35,3,False
+agentic,Unanswerable,What character helped Link in Ocarina Princess?,"I don't know. The text does not mention Ocarina Princess, but rather Ocarina of Time. According to the text, Link was assisted by a mysterious creature named Midna in The Legend of Zelda: Twilight Princess.",232.05,46.7,3,False
+agentic,Unanswerable,Who is the protagonist of Midna of Time?,"I don't know. The context provided mentions the protagonist of the game ""The Legend of Zelda: Twilight Princess"" as Link, but it does not mention a game called ""Midna of Time"".",235.32,47.3,3,False
+agentic,Unanswerable,From what alternate dimension does this dimension take place from?,"The Twilight Realm, a corrupted parallel dimension.",122.2,49.15,2,True
+agentic,Unanswerable,When does the Waker take place?,I don't know. The text does not mention when The Wind Waker takes place.,195.35,48.15,3,False
+agentic,Unanswerable,What accolade did Radar Princess receive after its release?,I don't know. There is no mention of Radar Princess in the provided context.,267.87,47.8,3,False
+agentic,Unanswerable,Under which brand was Radar Princess for the Nintendo Wii published?,"I don't know. The provided context mentions The Legend of Zelda: Twilight Princess, but it doesn't mention Radar Princess.",197.99,49.05,3,False
+agentic,Unanswerable,When is the HD version of Radar Princess slated for launch?,"I don't know. The text mentions the HD version of ""Twilight Princess"" (not ""Radar Princess"") for the Wii U, which is slated for release in March 2016.",202.56,64.55,3,False
+agentic,Unanswerable,At the time of release what episode of Legend of Radar series was considered the greatest story? ,"I don't know. The context only mentions that Twilight Princess was considered the greatest entry in the Zelda series by many critics, but it does not mention anything about Legend of Radar series.",223.68,46.5,3,False
+agentic,Unanswerable,How many Game of the Year awards did Radar Princess receive?,"I don't know. The text mentions that Twilight Princess received several Game of the Year awards, but it doesn't specify the exact number.",220.91,47.8,3,False
+agentic,Unanswerable,What are the three main activities in The Legend of Zelda: Clawshot Princess?,"I don't know. The text actually refers to ""The Legend of Zelda: Twilight Princess"", not ""The Legend of Zelda: Clawshot Princess"".",199.18,46.55,3,False
+agentic,Unanswerable,Clawshot Princess uses the control setup first employed in which previous game?,I don't know.,187.41,49.0,3,False
+agentic,Unanswerable,What is Clawshot's main weapon?,"I don't know. The text describes the Clawshot as similar to the Hookshot, but it doesn't mention the Clawshot's main weapon.",201.23,47.75,3,False
+agentic,Unanswerable,What secondary weapon in Clawshot Princess is analogous to a weapon featured in previous games?,"I don't know. The text does not mention ""Clawshot Princess"", but rather ""The Clawshot"" which is a secondary weapon in The Legend of Zelda: Twilight Princess. It is similar to the Hookshot introduced earlier in the series.",227.26,45.85,3,False
+agentic,Unanswerable,What genre of games is Clawshot Princess?,"I don't know. The text mentions ""The Legend of Zelda: Twilight Princess"" and ""Clawshot"", but it doesn't mention ""Clawshot Princess"".",224.48,45.6,3,False
+agentic,Unanswerable,Many different types of interaction can be controlled by how many rocks?,I don't know.,182.73,48.85,3,False
+agentic,Unanswerable,Where can players see what action will be performed in different rocks?,"The on-screen display shows what action, if any, the button will trigger, determined by the situation.",194.12,48.6,3,True
+agentic,Unanswerable,"If Link is not moving, where will he put the enemy he's carrying?",I don't know. The context does not specify what Link will do with the enemy if he is not moving.,191.85,48.75,3,False
+agentic,Unanswerable,What mechanic allows two buttons to serve many functions?,"I don't know. The provided context only mentions the context-sensitive button mechanic, which allows one button to serve a variety of functions.",186.88,48.95,3,False
+agentic,Unanswerable,What shows what action the rock will trigger?,"The on-screen display shows what action, if any, the button will trigger, determined by the situation.",192.15,80.1,3,True
+agentic,Unanswerable,Where is the speaker located on the Midna console?,"I don't know. The context only mentions the Wii Remote's built-in speaker, not the Midna console.",230.44,47.7,3,False
+agentic,Unanswerable,What sound do users hear when uncovering weapons in the game?,"I don't know. The context only mentions the sound of a bowstring when shooting an arrow, Midna's laugh, and the series' trademark ""chime"" when discovering secrets.",67.25,47.2,1,False
+agentic,Unanswerable,What part of the Midna is employed to use weapons?,I don't know. The context does not mention which part of Midna is used to employ weapons.,178.52,48.3,3,False
+agentic,Unanswerable,"Aside from the sword, what is another weapon that Midna can use?",I don't know. The text does not mention Midna using any other weapons.,183.77,48.5,3,False
+agentic,Unanswerable,How many weapons can be equipped by Midna if playing Twilight Princess on a GameCube?,"I don't know. The text does not mention Midna's ability to equip weapons. It mentions that in the GameCube version, only two of Link's secondary weapons can be equipped at a time.",224.37,46.65,3,False
+agentic,Unanswerable,How many dungeon instances are provided in Epona Princess?,"I don't know. The text does not mention ""Epona Princess."" It mentions ""The Legend of Zelda: Twilight Princess,"" which features nine dungeons.",183.08,47.75,3,False
+agentic,Unanswerable,What does Epona fight in dungeons?,"I don't know. The context only mentions that Link navigates dungeons and fights a boss at the end, but it doesn't mention Epona fighting in dungeons.",183.44,48.2,3,False
+agentic,Unanswerable,What provides a bridge between the different items?,I don't know. The context does not mention anything that provides a bridge between the different items.,74.04,48.5,1,False
+agentic,Unanswerable,What is the name of Link's enemy?,I don't know. The provided context does not mention the name of Link's enemy.,192.56,48.3,3,False
+agentic,Unanswerable,What must Epona solve throughout the game?,"I don't know. The text does not mention Epona solving anything throughout the game. It only mentions that Link can travel across the overworld on foot or on his horse, Epona.",200.47,46.8,3,False
+agentic,Unanswerable,What form does Epona take in the Twilight Realm?,I don't know. The provided context does not mention Epona's form in the Twilight Realm.,184.25,48.75,3,False
+agentic,Unanswerable,What is Epona's main form of offense in wolf form?,I don't know. The text does not mention Epona's main form of offense in wolf form.,206.2,48.4,3,False
+agentic,Unanswerable,Hostile Eponas are also known as what?,"I don't know. The provided context does not mention the term ""Hostile Eponas"" or their alternative name.",183.9,48.6,3,False
+agentic,Unanswerable,Who provides helpful information to Poes?,I don't know. The provided context does not mention who provides helpful information to Poes.,184.31,49.05,3,False
+agentic,Unanswerable,Link's Edna form is faster than what other form?,I don't know. There is no mention of Link's Edna form in the provided context.,204.32,48.8,3,False
+agentic,Unanswerable,What is a game whose enemies have more rudimentary programming than those in Twilight Enemies?,"I don't know. The provided context only mentions the enemies in Twilight Princess having more advanced AI than those in The Wind Waker, but it doesn't mention any other game with enemies having more rudimentary programming.",176.08,48.4,3,False
+agentic,Unanswerable,What does do previous games do to defeated companions?,I don't know.,179.0,49.1,3,False
+agentic,Unanswerable,What feature of the enemies in Twilight Enemies is more advanced?,The artificial intelligence (AI) of enemies in Twilight Princess is more advanced than that of enemies in The Wind Waker.,71.21,48.15,1,True
+agentic,Unanswerable,Who can enemies detect from a greater distance than in Twilight Enemies?,I don't know. The provided context does not mention any enemies that can detect Link from a greater distance in Twilight Enemies compared to other enemies.,210.17,49.0,3,False
+agentic,Unanswerable,Who reacts to artificial intelligence that passes by?,Enemies in Twilight Princess.,190.78,49.55,3,True
+agentic,Unanswerable,Through what can Link's verbalizations be discerned?,"Link's verbalizations can be discerned through his facial expressions, nods, and grunts when attacking or injured, as well as gasps when surprised.",206.39,48.0,3,True
+agentic,Unanswerable,Which person has the most nods in the game?,I don't know. The text does not mention the number of nods any character has. It only mentions that Link's emotions and responses are indicated visually by nods and facial expressions.,209.08,47.95,3,False
+agentic,Unanswerable,Who provided the basis for Zelda's voice?,"I don't know. The context only mentions that the voice acting for Midna was produced by scrambling the phonemes of English phrases sampled by Japanese voice actress Akiko Kōmoto, but it does not mention who provided the basis for Zelda's voice.",225.24,48.4,3,False
+agentic,Unanswerable,What country does Zelda come from?,"I don't know. The text does not mention the country of origin of Zelda. However, it does mention that the game takes place in the kingdom of Hyrule.",206.45,47.8,3,False
+agentic,Unanswerable,What does Zelda say when attacking?,"I don't know. The provided context does not mention Zelda saying anything when attacking. It mentions the sounds of a bowstring when shooting an arrow and Midna's laugh when giving advice, but it does not mention Zelda.",232.22,47.35,3,False
