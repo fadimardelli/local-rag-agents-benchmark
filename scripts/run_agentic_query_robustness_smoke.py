@@ -81,7 +81,7 @@ def main() -> None:
                     latency_s=timer.elapsed,
                     peak_rss_bytes=mem.peak_rss_bytes,
                     iterations=out.iterations,
-                    retrieval_calls=out.iterations,
+                    retrieval_calls=out.retrieval_calls,
                     topk_hit=evidence_recall_multi_file(out.retrieved, case.gold_spans),
                     evidence_recall=evidence_recall_multi_file(out.used, case.gold_spans),
                     retrieval_latency_s=out.retrieval_latency_s,

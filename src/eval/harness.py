@@ -40,12 +40,16 @@ THESIS_SUMMARY_KEYS = [
     "retrieval_calls_mean",
     "iterations_mean",
     "iterations_max",
-    "max_iterations_hit_rate",
+    "retry_rate",
     "retrieved_context_tokens_mean",
     "prompt_tokens_mean",
     "answer_tokens_mean",
     "retrieval_latency_mean_s",
     "generation_latency_mean_s",
+    "selector_parse_recovered_count",
+    "selector_parse_recovered_rate",
+    "selector_parse_fallback_count",
+    "selector_parse_fallback_rate",
 ]
 
 CALIBRATION_SUMMARY_KEYS = [
@@ -80,6 +84,7 @@ class EvalResult:
     latency_s: float
     peak_rss_bytes: int
     retrieval_calls: int
+    routing_type: Optional[str]
     retrieved_context_chars: int
     retrieved_context_tokens: int
     iterations: int
@@ -163,7 +168,7 @@ def run_eval(
             else:
                 out = rag.run(case.query, top_k=top_k)
                 iterations = out.iterations
-                retrieval_calls = out.iterations
+                retrieval_calls = out.retrieval_calls
         ended_at = datetime.now(timezone.utc)
 
         used = out.used
@@ -195,6 +200,7 @@ def run_eval(
                 latency_s=timer.elapsed,
                 peak_rss_bytes=mem.peak_rss_bytes,
                 retrieval_calls=retrieval_calls,
+                routing_type=getattr(out, "routing_type", None),
                 retrieved_context_chars=retrieved_context_chars,
                 retrieved_context_tokens=out.retrieved_context_tokens,
                 iterations=iterations,
@@ -255,7 +261,7 @@ def run_eval_contractnli_original(
             else:
                 out = rag.run_label(case.query, top_k=top_k) if label_mode else rag.run(case.query, top_k=top_k)
                 iterations = out.iterations
-                retrieval_calls = out.iterations
+                retrieval_calls = out.retrieval_calls
         ended_at = datetime.now(timezone.utc)
 
         used = out.used
@@ -289,6 +295,7 @@ def run_eval_contractnli_original(
                 latency_s=timer.elapsed,
                 peak_rss_bytes=mem.peak_rss_bytes,
                 retrieval_calls=retrieval_calls,
+                routing_type=getattr(out, "routing_type", None),
                 retrieved_context_chars=retrieved_context_chars,
                 retrieved_context_tokens=out.retrieved_context_tokens,
                 iterations=iterations,
@@ -345,7 +352,7 @@ def run_eval_hotpotqa(
             else:
                 out = rag.run_hotpot(case.query, top_k=top_k)
                 iterations = out.iterations
-                retrieval_calls = out.iterations
+                retrieval_calls = out.retrieval_calls
         ended_at = datetime.now(timezone.utc)
 
         used = out.used
@@ -373,6 +380,7 @@ def run_eval_hotpotqa(
                 latency_s=timer.elapsed,
                 peak_rss_bytes=mem.peak_rss_bytes,
                 retrieval_calls=retrieval_calls,
+                routing_type=getattr(out, "routing_type", None),
                 retrieved_context_chars=retrieved_context_chars,
                 retrieved_context_tokens=out.retrieved_context_tokens,
                 iterations=iterations,
@@ -430,7 +438,7 @@ def summarize(results: List[EvalResult]) -> Dict[str, float]:
         "retrieval_calls_mean": float(sum(r.retrieval_calls for r in results) / len(results)),
         "iterations_mean": float(sum(r.iterations for r in results) / len(results)),
         "iterations_max": float(max(r.iterations for r in results)),
-        "max_iterations_hit_rate": float(
+        "retry_rate": float(
             sum(1.0 for r in results if r.iterations >= AGENTIC_MAX_ITERS) / len(results)
         ),
         "retrieved_context_chars_mean": float(
@@ -474,6 +482,14 @@ def summarize(results: List[EvalResult]) -> Dict[str, float]:
         summary["single_pass_selected_rate"] = float(
             sum(1.0 for s in selection_sources if s == "single_pass") / len(selection_sources)
         )
+    selection_reasons = [r.answer_selection_reason for r in results if r.answer_selection_reason]
+    if selection_reasons:
+        parse_recovered_count = sum(1 for reason in selection_reasons if reason == "selector_parse_recovered")
+        parse_fallback_count = sum(1 for reason in selection_reasons if reason == "selector_parse_fallback")
+        summary["selector_parse_recovered_count"] = parse_recovered_count
+        summary["selector_parse_recovered_rate"] = float(parse_recovered_count / len(results))
+        summary["selector_parse_fallback_count"] = parse_fallback_count
+        summary["selector_parse_fallback_rate"] = float(parse_fallback_count / len(results))
     return summary
 
 

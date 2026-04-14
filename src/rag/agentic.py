@@ -45,7 +45,7 @@ CONTROLLER_DECISION_MAX_TOKENS = 48
 CONTROLLER_REWRITE_MAX_TOKENS = 128
 CONTROLLER_TEMPERATURE = 0.0
 HOTPOT_ANSWER_MAX_TOKENS = 32
-ANSWER_SELECTION_MAX_TOKENS = 24
+ANSWER_SELECTION_MAX_TOKENS = 48
 
 
 @dataclass(frozen=True)
@@ -72,6 +72,8 @@ class AgenticResult:
     retrieved: List[RetrievedChunk]
     used: List[RetrievedChunk]
     iterations: int
+    retrieval_calls: int
+    routing_type: Optional[str]
     refined_queries: List[str]
     retrieval_latency_s: float
     generation_latency_s: float
@@ -157,22 +159,6 @@ class AgenticRAG:
             dominant_doc_share=dominant_share,
         )
 
-    @classmethod
-    def _should_force_global_refine(cls, question: str, chunks: List[RetrievedChunk]) -> bool:
-        if cls._is_source_specific_question(question):
-            return False
-        top_chunks = chunks[:5]
-        if len(top_chunks) < 3:
-            return False
-        dominant_share = cls._dominant_doc_share(top_chunks, top_n=5)
-        unique_docs = len({chunk.doc_path for chunk in top_chunks})
-        # Force a second global search only when the first-pass retrieval is
-        # genuinely diffuse: several sources appear, no source dominates, and
-        # the top two chunks do not even agree on a likely source. This keeps
-        # the trigger tied to retrieval structure rather than any benchmark.
-        top_two_same_doc = top_chunks[0].doc_path == top_chunks[1].doc_path
-        return dominant_share <= 0.4 and unique_docs >= 3 and not top_two_same_doc
-
     def _apply_source_focus(self, question: str, chunks: List[RetrievedChunk]) -> List[RetrievedChunk]:
         if not self._is_source_specific_question(question):
             return chunks
@@ -217,8 +203,9 @@ class AgenticRAG:
         top_k: int,
         question: str,
         route: CorrectiveRoute,
-    ) -> tuple[List[RetrievedChunk], str]:
+    ) -> tuple[List[RetrievedChunk], str, int]:
         corrective_k = max(top_k, AGENTIC_CORRECTIVE_TOP_K)
+        retrieval_calls = 1
         primary_retrieval_query, _ = self._prepare_retrieval_query(primary_query)
         if route.name == "doc_narrow" and route.target_doc:
             corrective_retrieved = self.retriever.retrieve_in_docs(
@@ -235,11 +222,12 @@ class AgenticRAG:
                     k=corrective_k,
                     doc_paths=[route.target_doc],
                 )
+                retrieval_calls += 1
                 fused = self._fuse_ranked_lists(fused, backup_retrieved)
                 final_query = (
                     f"{primary_retrieval_query} || {backup_retrieval_query} @doc:{Path(route.target_doc).name}"
                 )
-            return fused, final_query
+            return fused, final_query, retrieval_calls
 
         corrective_retrieved = self.retriever.retrieve(primary_retrieval_query, k=corrective_k)
         fused = self._fuse_ranked_lists(previous_retrieved, corrective_retrieved)
@@ -247,9 +235,10 @@ class AgenticRAG:
         if backup_query != "NONE":
             backup_retrieval_query, _ = self._prepare_retrieval_query(backup_query)
             backup_retrieved = self.retriever.retrieve(backup_retrieval_query, k=corrective_k)
+            retrieval_calls += 1
             fused = self._fuse_ranked_lists(fused, backup_retrieved)
             final_query = f"{primary_retrieval_query} || {backup_retrieval_query}"
-        return self._apply_source_focus(question, fused), final_query
+        return self._apply_source_focus(question, fused), final_query, retrieval_calls
 
     def _prepare_retrieval_query(self, question: str) -> tuple[str, float]:
         transformed = build_retrieval_query(
@@ -611,7 +600,27 @@ class AgenticRAG:
     def _normalize_answer_text(text: str) -> str:
         return " ".join(text.strip().lower().split())
 
+    @staticmethod
+    def _recover_selector_choice(text: str) -> Optional[str]:
+        if not text:
+            return None
+        candidates: list[str] = []
+        patterns = [
+            r'(?im)^\s*["\'`]*([AB])["\'`]*\s*$',
+            r'(?i)\b(?:choice|answer|selected?)\b(?:\s+is)?\s*[:=]?\s*["\'`]*([AB])["\'`]*\b',
+            r'(?i)["\']choice["\']\s*:\s*["\']([AB])["\']',
+        ]
+        for pattern in patterns:
+            matches = [match.upper() for match in re.findall(pattern, text)]
+            for match in matches:
+                if match not in candidates:
+                    candidates.append(match)
+        if len(candidates) == 1:
+            return candidates[0]
+        return None
+
     def _parse_answer_selection_output(self, text: str) -> tuple[str, str]:
+        raw_text = text
         cleaned = text.strip()
         if cleaned.startswith("```"):
             cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
@@ -626,11 +635,17 @@ class AgenticRAG:
         except json.JSONDecodeError:
             payload = None
         if not isinstance(payload, dict):
-            return "B", "selector_parse_fallback"
+            recovered_choice = self._recover_selector_choice(raw_text)
+            if recovered_choice in {"A", "B"}:
+                return recovered_choice, "selector_parse_recovered"
+            return "A", "selector_parse_fallback"
         choice = str(payload.get("choice", "")).strip().upper()
         reason = self._normalize_optional_text(payload.get("reason"))
         if choice in {"A", "B"}:
             return choice, reason
+        recovered_choice = self._recover_selector_choice(raw_text)
+        if recovered_choice in {"A", "B"}:
+            return recovered_choice, "selector_parse_recovered"
         return "UNKNOWN", reason
 
     def _select_hotpot_answer(
@@ -685,10 +700,12 @@ class AgenticRAG:
         retrieval_latency_s = 0.0
         generation_latency_s = 0.0
         iteration_trace: List[dict] = []
+        retrieval_calls = 0
         previous_signature: Optional[tuple[tuple[str, int, int], ...]] = None
         pending_retrieved: Optional[List[RetrievedChunk]] = None
         pending_retrieval_query: Optional[str] = None
         corrective_pass_used = False
+        routing_type: Optional[str] = None
         best_stop_retrieved: List[RetrievedChunk] = []
         best_stop_used: List[RetrievedChunk] = []
         best_stop_context = ""
@@ -706,6 +723,7 @@ class AgenticRAG:
                 retrieval_started = perf_counter()
                 retrieval_query, _ = self._prepare_retrieval_query(current_query)
                 retrieved = self.retriever.retrieve(retrieval_query, k=top_k)
+                retrieval_calls += 1
                 retrieval_latency_s += perf_counter() - retrieval_started
             context, used = build_context(
                 retrieved,
@@ -718,6 +736,8 @@ class AgenticRAG:
             current_signature = self._chunk_signature(retrieved)
             controller_context = self._controller_context(retrieved, char_budget=CONTEXT_CHAR_BUDGET)
             route = self._select_corrective_route(question, retrieved)
+            if routing_type is None:
+                routing_type = route.name
             plan: Optional[CorrectiveQueryPlan] = None
 
             if route.name == "doc_narrow":
@@ -862,7 +882,7 @@ class AgenticRAG:
                         )
                     break
                 corrective_started = perf_counter()
-                corrected_retrieved, corrective_retrieval_query = self._corrective_retrieve(
+                corrected_retrieved, corrective_retrieval_query, corrective_retrieval_calls = self._corrective_retrieve(
                     primary_query=plan.primary_query,
                     backup_query=plan.backup_query,
                     previous_retrieved=retrieved,
@@ -870,6 +890,7 @@ class AgenticRAG:
                     question=question,
                     route=route,
                 )
+                retrieval_calls += corrective_retrieval_calls
                 retrieval_latency_s += perf_counter() - corrective_started
                 corrected_signature = self._chunk_signature(corrected_retrieved)
 
@@ -1019,6 +1040,8 @@ class AgenticRAG:
             retrieved=final_retrieved,
             used=final_used,
             iterations=len(refined_queries) + 1,
+            retrieval_calls=retrieval_calls,
+            routing_type=routing_type,
             refined_queries=refined_queries,
             retrieval_latency_s=retrieval_latency_s,
             generation_latency_s=generation_latency_s,
