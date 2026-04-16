@@ -207,38 +207,36 @@ class AgenticRAG:
         corrective_k = max(top_k, AGENTIC_CORRECTIVE_TOP_K)
         retrieval_calls = 1
         primary_retrieval_query, _ = self._prepare_retrieval_query(primary_query)
-        if route.name == "doc_narrow" and route.target_doc:
+        # Use in-doc retrieval only when anchor confidence is high enough.
+        # Low dominant_share means chunks are spread across docs — anchor is unreliable,
+        # so fall back to global retrieval to avoid searching the wrong document entirely.
+        use_in_doc = (
+            route.name == "doc_narrow"
+            and route.target_doc is not None
+            and route.dominant_doc_share >= 0.6
+        )
+        if use_in_doc:
             corrective_retrieved = self.retriever.retrieve_in_docs(
-                primary_retrieval_query,
-                k=corrective_k,
-                doc_paths=[route.target_doc],
+                primary_retrieval_query, k=corrective_k, doc_paths=[route.target_doc]
             )
-            final_query = f"{primary_retrieval_query} @doc:{Path(route.target_doc).name}"
-            fused = self._fuse_ranked_lists(previous_retrieved, corrective_retrieved)
-            if backup_query != "NONE":
-                backup_retrieval_query, _ = self._prepare_retrieval_query(backup_query)
-                backup_retrieved = self.retriever.retrieve_in_docs(
-                    backup_retrieval_query,
-                    k=corrective_k,
-                    doc_paths=[route.target_doc],
-                )
-                retrieval_calls += 1
-                fused = self._fuse_ranked_lists(fused, backup_retrieved)
-                final_query = (
-                    f"{primary_retrieval_query} || {backup_retrieval_query} @doc:{Path(route.target_doc).name}"
-                )
-            return fused, final_query, retrieval_calls
-
-        corrective_retrieved = self.retriever.retrieve(primary_retrieval_query, k=corrective_k)
+        else:
+            corrective_retrieved = self.retriever.retrieve(primary_retrieval_query, k=corrective_k)
         fused = self._fuse_ranked_lists(previous_retrieved, corrective_retrieved)
         final_query = primary_retrieval_query
         if backup_query != "NONE":
             backup_retrieval_query, _ = self._prepare_retrieval_query(backup_query)
-            backup_retrieved = self.retriever.retrieve(backup_retrieval_query, k=corrective_k)
+            if use_in_doc:
+                backup_retrieved = self.retriever.retrieve_in_docs(
+                    backup_retrieval_query, k=corrective_k, doc_paths=[route.target_doc]
+                )
+            else:
+                backup_retrieved = self.retriever.retrieve(backup_retrieval_query, k=corrective_k)
             retrieval_calls += 1
             fused = self._fuse_ranked_lists(fused, backup_retrieved)
             final_query = f"{primary_retrieval_query} || {backup_retrieval_query}"
-        return self._apply_source_focus(question, fused), final_query, retrieval_calls
+        if not use_in_doc:
+            fused = self._apply_source_focus(question, fused)
+        return fused, final_query, retrieval_calls
 
     def _prepare_retrieval_query(self, question: str) -> tuple[str, float]:
         transformed = build_retrieval_query(
@@ -406,8 +404,13 @@ class AgenticRAG:
             return "STOP"
         if cleaned == "RETRY":
             return "RETRY"
-        first_word = cleaned.split()[0] if cleaned else ""
-        return "STOP" if first_word == "STOP" else "RETRY"
+        match = re.match(r"^([A-Z]+)", cleaned)
+        first_token = match.group(1) if match else ""
+        if first_token == "STOP":
+            return "STOP"
+        if first_token == "RETRY":
+            return "RETRY"
+        return "RETRY"
 
     @classmethod
     def _normalize_query_candidate(cls, text: Optional[str]) -> str:
