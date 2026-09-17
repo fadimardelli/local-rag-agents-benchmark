@@ -73,8 +73,8 @@ def main():
     hotpot_total = 0
 
     for spec in pack.RUN_SPECS:
-        raw_rows = load_raw_rows(spec.results_glob)
-        csv_path = CSV_DIR / spec.csv_name
+        raw_rows = load_raw_rows(spec.local_glob)
+        csv_path = CSV_DIR / pack.csv_name_for(spec)
         csv_rows = load_csv_rows(csv_path)
         assert len(raw_rows) == len(csv_rows), f'Row count mismatch for {spec.key}: raw={len(raw_rows)} csv={len(csv_rows)}'
 

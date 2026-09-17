@@ -1,8 +1,12 @@
 .venv/
 __pycache__/
-data/
+/data/
 .DS_Store
-.venv/
-__pycache__/
 .pytest_cache/
 notes/
+*.pyc
+.mypy_cache/
+.coverage
+htmlcov/
+backups/
+thesis/.matplotlib/

@@ -1,3 +1,4 @@
+## a smaller samppled subset , 25 queries from each legal subset. 
 import argparse
 from pathlib import Path
 

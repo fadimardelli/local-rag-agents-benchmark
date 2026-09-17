@@ -42,6 +42,11 @@ class LlamaCppModel:
                 pass
         self.model = None
 
+    def reset(self) -> None:
+        reset_fn = getattr(self.model, "reset", None)
+        if callable(reset_fn):
+            reset_fn()
+
     def generate(
         self,
         system_prompt: str,

@@ -1,5 +1,6 @@
 import argparse
 import json
+import platform
 from pathlib import Path
 from typing import Iterable, List
 
@@ -50,6 +51,14 @@ def _slice_manifest_cases(payload: dict, manifest_offset: int, manifest_limit: i
     return selected
 
 
+def _apply_sweep_order(cases: list[dict], sweep_order: str) -> list[dict]:
+    if sweep_order == "canonical":
+        return cases
+    if sweep_order == "reversed":
+        return list(reversed(cases))
+    raise ValueError(f"Unsupported sweep order: {sweep_order}")
+
+
 def _legal_cases(benchmark: str, manifest_cases: list[dict]) -> List[ContractNLITestCase]:
     iterator_fn = (
         iter_legalbench_mini_balanced_cases_window
@@ -82,9 +91,12 @@ def main() -> None:
     parser.add_argument("--manifest-offset", type=int, default=0)
     parser.add_argument("--manifest-limit", type=int, default=20)
     parser.add_argument("--model", choices=["8b", "3b"], default="8b")
+    parser.add_argument("--model-label", type=str, default="")
     parser.add_argument("--model-path", type=str, default="")
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--repeat-label", type=str, default="")
+    parser.add_argument("--study-stage", choices=["calibration", "final"], default="calibration")
+    parser.add_argument("--sweep-order", choices=["canonical", "reversed"], default="canonical")
     parser.add_argument(
         "--results-dir",
         type=Path,
@@ -92,6 +104,11 @@ def main() -> None:
     )
     parser.add_argument("--warmup", action="store_true")
     parser.add_argument("--trace-agentic", action="store_true")
+    parser.add_argument("--cooldown-seconds", type=int, default=120)
+    parser.add_argument("--power-source", choices=["ac", "battery"], default="ac")
+    parser.add_argument("--lid-state", choices=["open", "closed"], default="open")
+    parser.add_argument("--low-power-mode", choices=["on", "off"], default="off")
+    parser.add_argument("--background-load", choices=["idle", "light", "heavy"], default="idle")
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--summary-view", choices=["all", "thesis", "calibration"], default="all")
     parser.add_argument("--query-transform-mode", choices=["none", "hyde"], default=QUERY_TRANSFORM_MODE)
@@ -106,6 +123,7 @@ def main() -> None:
 
     payload = _load_manifest(args.manifest)
     manifest_cases = _slice_manifest_cases(payload, args.manifest_offset, args.manifest_limit)
+    manifest_cases = _apply_sweep_order(manifest_cases, args.sweep_order)
     benchmark = payload["benchmark"]
     model_path = Path(args.model_path) if args.model_path else _default_model_path(args.model)
 
@@ -170,9 +188,36 @@ def main() -> None:
                 "mode": args.mode,
                 "run_id": args.run_id,
                 "repeat_label": args.repeat_label,
+                "study_stage": args.study_stage,
+                "sweep_order": args.sweep_order,
                 "model_path": str(model_path),
+                "model_label": args.model_label or args.model,
                 "manifest_offset": args.manifest_offset,
                 "manifest_limit": len(manifest_cases),
+                "warmup": args.warmup,
+                "trace_agentic": args.trace_agentic,
+                "top_k": args.top_k,
+                "summary_view": args.summary_view,
+                "query_transform_mode": args.query_transform_mode,
+                "retrieval_mode": args.retrieval_mode,
+                "hybrid_dense_top_k": args.hybrid_dense_top_k,
+                "hybrid_bm25_top_k": args.hybrid_bm25_top_k,
+                "hybrid_rrf_k": args.hybrid_rrf_k,
+                "rerank_enabled": args.rerank_enabled,
+                "rerank_candidate_k": args.rerank_candidate_k,
+                "rerank_model_name": args.rerank_model_name,
+                "cooldown_seconds": args.cooldown_seconds,
+                "power_source": args.power_source,
+                "lid_state": args.lid_state,
+                "low_power_mode": args.low_power_mode,
+                "background_load": args.background_load,
+                "execution_environment": {
+                    "hostname": platform.node(),
+                    "platform": platform.platform(),
+                    "python_version": platform.python_version(),
+                    "machine": platform.machine(),
+                    "processor": platform.processor(),
+                },
                 "selected_dataset_offsets": [int(item["dataset_offset"]) for item in manifest_cases],
                 "selected_queries": [item.get("query", "") for item in manifest_cases],
                 "summary": summary,
