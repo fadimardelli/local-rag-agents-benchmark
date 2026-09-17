@@ -76,6 +76,7 @@ PYTHONPATH=. python scripts/run_eval_hotpotqa.py --mode agentic --limit 50 --war
 ## Documentation
 
 - [Master's thesis](./docs/Thesis_Paper.pdf) — "Investigating Locally Deployed LLM Agentic Workflows" (Group T, KU Leuven). Full write-up of the motivation, methodology, and results behind this benchmark.
+- [Defense presentation](./docs/Defence_Presentation.pdf) — "Evaluating Retrieval-Augmented Generation Frameworks Under Local Deployment Constraints," the slides used for the thesis defense.
 
 ## Notes
 
