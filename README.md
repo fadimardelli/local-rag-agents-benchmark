@@ -73,6 +73,10 @@ PYTHONPATH=. python scripts/run_eval_hotpotqa.py --mode traditional --limit 50 -
 PYTHONPATH=. python scripts/run_eval_hotpotqa.py --mode agentic --limit 50 --warmup --model 8b --trace-agentic
 ```
 
+## Documentation
+
+- [Master's thesis](./docs/Thesis_Paper.pdf) — "Investigating Locally Deployed LLM Agentic Workflows" (Group T, KU Leuven). Full write-up of the motivation, methodology, and results behind this benchmark.
+
 ## Notes
 
 - The repository is designed for fully local inference at runtime.
